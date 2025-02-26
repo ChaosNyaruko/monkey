@@ -56,6 +56,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	default:
 		log.Printf("unsupported type: %v", p.curToken.Type)
 		return nil
@@ -75,6 +77,21 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		p.peekError(t)
 		return false
 	}
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	res := &ast.ReturnStatement{
+		Token:       p.curToken,
+		ReturnValue: nil, // TODO
+	}
+	p.nextToken()
+
+	// TODO: we don't have Expression parsing yet, so just read until a semicolon.
+	for !p.curTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return res
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
