@@ -7,21 +7,6 @@ import (
 	"github.com/ChaosNyaruko/monkey/lexer"
 )
 
-func checkProgram(t *testing.T, p *Parser) {
-	errors := p.Errors()
-	if len(errors) == 0 {
-		return
-	}
-
-	t.Errorf("the program has %d errors", len(errors))
-
-	for _, msg := range errors {
-		t.Errorf("parser error: %q", msg)
-	}
-
-	t.FailNow()
-}
-
 func TestLetStatments(t *testing.T) {
 	input := `
 	let x = 5;
@@ -32,7 +17,7 @@ func TestLetStatments(t *testing.T) {
 	p := New(l)
 
 	program := p.ParseProgram()
-	checkProgram(t, p)
+	checkParserErrors(t, p)
 	if len(program.Statements) != 3 {
 		t.Fatalf("expected 3 statements, but got %v", len(program.Statements))
 	}
@@ -76,7 +61,52 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 		return false
 	}
 
+	// TODO: the right side is an expression, we haven't implement expression parsing yet.
+
 	return true
 
-	// TODO: the right side is an expression.
+}
+
+func checkParserErrors(t *testing.T, p *Parser) {
+	errs := p.Errors()
+	if len(errs) == 0 {
+		return
+	}
+	t.Errorf("parser has %d errors", len(errs))
+
+	for _, msg := range errs {
+		t.Errorf("parser error: %q", msg)
+	}
+	t.FailNow()
+}
+
+func TestReturnStatements(t *testing.T) {
+	input := `
+	return 5;
+	return 10;
+	return 993 322;
+`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 3 {
+		t.Fatalf("program.Statements doen't contain 3 statements. got=%d", len(program.Statements))
+	}
+
+	for _, stmt := range program.Statements {
+		returnStmt, ok := stmt.(*ast.ReturnStatement)
+		if !ok {
+			t.Errorf("stmt not a return statement. got=%T", stmt)
+			continue
+		}
+
+		if returnStmt.TokenLiteral() != "return" {
+			t.Errorf("returnStmt TokenLiteral not 'return'. got=%q", returnStmt.TokenLiteral())
+		}
+
+	}
+
 }

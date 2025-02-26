@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/ChaosNyaruko/monkey/ast"
 	"github.com/ChaosNyaruko/monkey/lexer"
@@ -77,7 +78,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
-	log.Printf("parse 'let' stmt")
+	fmt.Fprintf(os.Stderr, "parse 'let' stmt")
 	stmt := &ast.LetStatement{
 		Token: p.curToken, // "LET"
 		Name:  &ast.Identifer{},
@@ -98,9 +99,13 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 
 	// TODO: skip for now, so just read it until a semicolon encountered.
-	for p.curToken.Type != token.SEMICOLON {
+	for !p.curTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
 	return stmt
+}
+
+func (p *Parser) curTokenIs(tok token.TokenType) bool {
+	return p.curToken.Type == tok
 }
