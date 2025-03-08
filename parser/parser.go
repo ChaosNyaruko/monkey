@@ -2,12 +2,25 @@ package parser
 
 import (
 	"fmt"
-	"log"
-	"os"
+	"strconv"
 
 	"github.com/ChaosNyaruko/monkey/ast"
 	"github.com/ChaosNyaruko/monkey/lexer"
 	"github.com/ChaosNyaruko/monkey/token"
+)
+
+const (
+	_ = iota
+	LOWEST
+	EQUALS // ==
+	// false == (2 < 3)
+	LESSGREATER // > <
+	// 1 + (2 * 3)
+	SUM
+	PRODUCT
+	// (-X) * Y
+	PREFIX // !X -X
+	CALL   // -x + (foo(1,2))
 )
 
 type Parser struct {
@@ -16,6 +29,9 @@ type Parser struct {
 
 	curToken  token.Token
 	peekToken token.Token
+
+	prefixFnMap map[token.TokenType]prefixFn
+	infixFnMap  map[token.TokenType]infixFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -24,9 +40,40 @@ func New(l *lexer.Lexer) *Parser {
 		curToken:  token.Token{},
 		peekToken: token.Token{},
 	}
+	p.prefixFnMap = make(map[token.TokenType]prefixFn)
+	p.infixFnMap = make(map[token.TokenType]infixFn)
+	// Identifer
+	p.prefixFnMap[token.IDENT] = p.parseIdentifier
+	p.prefixFnMap[token.INT] = p.parseIntegerLiteral
 	p.nextToken()
 	p.nextToken()
 	return p
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	num := &ast.IntegerLiteral{
+		Token: p.curToken,
+	}
+
+	if v, err := strconv.ParseInt(p.curToken.Literal, 10, 64); err != nil {
+		msg := fmt.Sprintf("cannot parse %q as int", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	} else {
+		num.Value = int(v)
+	}
+	p.nextToken()
+	return num
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	id := &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	p.nextToken()
+	return id
 }
 
 func (p *Parser) nextToken() {
@@ -59,8 +106,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		log.Printf("unsupported type: %v", p.curToken.Type)
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -79,6 +125,28 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	}
 }
 
+func (p *Parser) parseExpression() ast.Expression {
+	fn, ok := p.prefixFnMap[p.curToken.Type]
+	if !ok {
+		msg := fmt.Sprintf("undefined operator: %q", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	es := fn()
+
+	return es
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	// foo + bar
+	stmt := &ast.ExpressionStatement{
+		Token:      p.curToken,
+		Expression: p.parseExpression(),
+	}
+	return stmt
+}
+
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	res := &ast.ReturnStatement{
 		Token:       p.curToken,
@@ -95,10 +163,9 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
-	fmt.Fprintf(os.Stderr, "parse 'let' stmt")
 	stmt := &ast.LetStatement{
 		Token: p.curToken, // "LET"
-		Name:  &ast.Identifer{},
+		Name:  &ast.Identifier{},
 		Value: nil,
 	}
 
@@ -106,7 +173,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	stmt.Name = &ast.Identifer{
+	stmt.Name = &ast.Identifier{
 		Token: p.curToken,
 		Value: p.curToken.Literal,
 	}
@@ -126,3 +193,8 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 func (p *Parser) curTokenIs(tok token.TokenType) bool {
 	return p.curToken.Type == tok
 }
+
+type (
+	prefixFn func() ast.Expression
+	infixFn  func(lhs ast.Expression) ast.Expression // res = lhs + rhs
+)
