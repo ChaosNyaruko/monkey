@@ -283,3 +283,30 @@ func TestOpPrecedence(t *testing.T) {
 		assert.Equal(t, x.expected, program.String())
 	}
 }
+
+func TestBooleanExpression(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected string
+	}
+
+	for _, tc := range []testcase{
+		{"true;", "true"},
+		{"false;", "false"},
+	} {
+
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement")
+		testLiteralExpression(t, stmt.Expression, tc.expected)
+
+		assert.Equal(t, 5, stmt.Expression.(*ast.IntegerLiteral).Value)
+	}
+}
