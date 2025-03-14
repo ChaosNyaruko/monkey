@@ -11,6 +11,8 @@ import (
 var _ Statement = &LetStatement{}
 var _ Expression = &Identifier{}
 var _ Expression = &IntegerLiteral{}
+var _ Expression = &PrefixExpression{}
+var _ Expression = &InfixExpression{}
 
 type Node interface {
 	TokenLiteral() string
