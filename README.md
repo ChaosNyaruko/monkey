@@ -137,5 +137,23 @@ return lhs
 ### Boolean
 "true"
 "false"
+
 ### grouping
-"(" xxx ")" 
+( <Expression> )
+
+### if-else expressionStatement
+if (<condition>) {<block>} else {<block>}
+```
+let foo = if (x>y) {x} return {y};
+```
+### function literal
+TODO
+let f = fn(a, b) { return a + b;}
+
+### function calling
+TODO
+f(1,2)
+
+
+
+

@@ -288,6 +288,11 @@ func TestOpPrecedence(t *testing.T) {
 		{"3 > 5 == false", "((3>5)==false)"},
 		{"3 < 5 == true", "((3<5)==true)"},
 		{"true == 3 < 5", "(true==(3<5))"},
+		{"1 + (2 + 3) + 4", "((1+(2+3))+4)"},
+		{"2/(5+5)", "(2/(5+5))"},
+		{"(5+5)*2", "((5+5)*2)"},
+		{"-(5+5)", "(-(5+5))"},
+		{"!(true==true)", "(!(true==true))"},
 	}
 	for _, x := range cases {
 		l := lexer.New(x.input)
@@ -320,5 +325,76 @@ func TestBooleanExpression(t *testing.T) {
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		assert.True(t, ok, "should be an expression statement")
 		testLiteralExpression(t, stmt.Expression, tc.expected)
+	}
+}
+
+func TestIfExpression(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+	}
+
+	for _, tc := range []testcase{
+		{"if (x < y) {x}", "TODO"},
+	} {
+
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement")
+		exp, ok := stmt.Expression.(*ast.IfExpression)
+		assert.True(t, ok, "should be an if expression statement")
+		testInfixExpression(t, exp.Condition, "x", "<", "y")
+
+		b1 := exp.If.Statements
+		assert.Equal(t, 1, len(b1), "bad if branch")
+		s1, ok := b1[0].(*ast.ExpressionStatement) // x
+		assert.True(t, ok, "should be an expression statement statement")
+		testIdentifier(t, s1.Expression, "x")
+	}
+}
+
+func TestIfElseExpression(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+	}
+
+	for _, tc := range []testcase{
+		{"if (x < y) {x} else {y}", "TODO"},
+	} {
+
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement")
+		exp, ok := stmt.Expression.(*ast.IfExpression)
+		assert.True(t, ok, "should be an if expression statement")
+		testInfixExpression(t, exp.Condition, "x", "<", "y")
+
+		b1 := exp.If.Statements
+		assert.Equal(t, 1, len(b1), "bad if branch")
+		s1, ok := b1[0].(*ast.ExpressionStatement) // x
+		assert.True(t, ok, "should be an expression statement statement")
+		testIdentifier(t, s1.Expression, "x")
+
+		assert.NotNil(t, exp.Else)
+		b2 := exp.Else.Statements
+		assert.Equal(t, 1, len(b2), "bad else branch")
+		s2, ok := b2[0].(*ast.ExpressionStatement) // y
+		assert.True(t, ok, "should be an expression statement statement")
+		testIdentifier(t, s2.Expression, "y")
 	}
 }
