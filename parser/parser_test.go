@@ -155,13 +155,14 @@ func TestPrefixExpressions(t *testing.T) {
 	type testcase struct {
 		input string
 		op    string
-		value int
+		value any
 	}
 
 	cases := []testcase{
 		{"!5;", "!", 5},
 		{"-10;", "-", 10},
-		// {"-!10", "-", 10},
+		{"!true;", "!", true},
+		{"!false;", "!", false},
 	}
 	for _, x := range cases {
 		l := lexer.New(x.input)
@@ -178,7 +179,7 @@ func TestPrefixExpressions(t *testing.T) {
 		assert.True(t, ok, "should be an prefix expression, but got %T", stmt.Expression)
 		assert.Equal(t, x.op, preStmt.Op, "parse op error")
 		t.Logf("input: %v, expression: %v", x.input, preStmt.String())
-		testIntegerLiteral(t, preStmt.Rhs, x.value)
+		testLiteralExpression(t, preStmt.Rhs, x.value)
 	}
 
 }
@@ -191,6 +192,8 @@ func testLiteralExpression(t *testing.T, exp ast.Expression, expected any) {
 		testIntegerLiteral(t, exp, int(v))
 	case string:
 		testIdentifier(t, exp, v)
+	case bool:
+		testBoolean(t, exp, v)
 	default:
 		t.Errorf("testLiteralExpression: unsupported type %T", expected)
 	}
@@ -203,6 +206,12 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left any, op string, 
 	testLiteralExpression(t, e.Lhs, left)
 	assert.Equal(t, op, e.Op)
 	testLiteralExpression(t, e.Rhs, right)
+}
+
+func testBoolean(t *testing.T, ep ast.Expression, value bool) {
+	ident, ok := ep.(*ast.BooleanExpression)
+	assert.True(t, ok, "should be a boolean, but got %T", ep)
+	assert.Equal(t, value, ident.Value)
 }
 
 func testIdentifier(t *testing.T, ep ast.Expression, value string) {
@@ -276,9 +285,9 @@ func TestOpPrecedence(t *testing.T) {
 		{"a + b; b / c", "(a+b)(b/c)"},
 		{"true", "true"},
 		{"false", "false"},
-		{"3 > 5 == false", "(3 > 5) == false"},
-		{"3 < 5 == true", "(3 < 5) == true"},
-		{"true == 3 < 5", "true == (3 < 5)"},
+		{"3 > 5 == false", "((3>5)==false)"},
+		{"3 < 5 == true", "((3<5)==true)"},
+		{"true == 3 < 5", "(true==(3<5))"},
 	}
 	for _, x := range cases {
 		l := lexer.New(x.input)
@@ -292,12 +301,12 @@ func TestOpPrecedence(t *testing.T) {
 func TestBooleanExpression(t *testing.T) {
 	type testcase struct {
 		input    string
-		expected string
+		expected bool
 	}
 
 	for _, tc := range []testcase{
-		{"true;", "true"},
-		{"false;", "false"},
+		{"true;", true},
+		{"false;", false},
 	} {
 
 		l := lexer.New(tc.input)
@@ -311,7 +320,5 @@ func TestBooleanExpression(t *testing.T) {
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		assert.True(t, ok, "should be an expression statement")
 		testLiteralExpression(t, stmt.Expression, tc.expected)
-
-		assert.Equal(t, 5, stmt.Expression.(*ast.IntegerLiteral).Value)
 	}
 }

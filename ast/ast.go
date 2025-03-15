@@ -13,6 +13,7 @@ var _ Expression = &Identifier{}
 var _ Expression = &IntegerLiteral{}
 var _ Expression = &PrefixExpression{}
 var _ Expression = &InfixExpression{}
+var _ Expression = &BooleanExpression{}
 
 type Node interface {
 	TokenLiteral() string
@@ -76,6 +77,20 @@ func (i *IntegerLiteral) String() string {
 
 func (i *IntegerLiteral) expressionNode() {}
 func (i *IntegerLiteral) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+type BooleanExpression struct {
+	Token token.Token
+	Value bool
+}
+
+func (i *BooleanExpression) String() string {
+	return i.Token.Literal
+}
+
+func (i *BooleanExpression) expressionNode() {}
+func (i *BooleanExpression) TokenLiteral() string {
 	return i.Token.Literal
 }
 
