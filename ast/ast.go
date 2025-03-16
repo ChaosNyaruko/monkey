@@ -17,6 +17,8 @@ var _ Expression = &PrefixExpression{}
 var _ Expression = &InfixExpression{}
 var _ Expression = &BooleanExpression{}
 var _ Expression = &IfExpression{}
+var _ Expression = &FunctionLiteral{}
+var _ Expression = &CallExpression{}
 
 type Node interface {
 	TokenLiteral() string
@@ -274,5 +276,29 @@ func (i *FunctionLiteral) String() string {
 
 func (i *FunctionLiteral) expressionNode() {}
 func (i *FunctionLiteral) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+type CallExpression struct {
+	Token     token.Token // "("
+	Arguments []Expression
+	F         Expression // the called function, add(1+2) or function literal
+}
+
+func (i *CallExpression) String() string {
+	var out bytes.Buffer
+	args := []string{}
+	for _, p := range i.Arguments {
+		args = append(args, p.String())
+	}
+	out.WriteString(i.F.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ","))
+	out.WriteString(")")
+	return out.String()
+}
+
+func (i *CallExpression) expressionNode() {}
+func (i *CallExpression) TokenLiteral() string {
 	return i.Token.Literal
 }

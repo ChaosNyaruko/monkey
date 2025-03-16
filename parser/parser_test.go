@@ -466,3 +466,31 @@ func TestFunctionParameters(t *testing.T) {
 		assert.Equal(t, strings.Join(tc.expected, ","), strings.Join(ps, ","))
 	}
 }
+
+func TestCallFunction(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected string
+	}
+	for _, tc := range []testcase{
+		{"add(1, 2+3, 4 + 5*6, 7*8+10)", "add(1,(2+3),(4+(5*6)),((7*8)+10))"},
+		{"non()", "non()"},
+		{"negate(1)", "negate(1)"},
+	} {
+
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement")
+		exp, ok := stmt.Expression.(*ast.CallExpression)
+		assert.True(t, ok, "should be a function literal expression statement")
+
+		assert.Equal(t, tc.expected, exp.String())
+	}
+}
