@@ -7,41 +7,66 @@ import (
 
 	"github.com/ChaosNyaruko/monkey/ast"
 	"github.com/ChaosNyaruko/monkey/lexer"
+	"github.com/ChaosNyaruko/monkey/token"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLetStatments(t *testing.T) {
-	input := `
-	let x = 5;
-	let y = 10;
-	let foobar = 383838;
-`
-	l := lexer.New(input)
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-	if len(program.Statements) != 3 {
-		t.Fatalf("expected 3 statements, but got %v", len(program.Statements))
-	}
-
 	tests := []struct {
+		name               string
+		input              string
 		expectedIdentifier string
+		expectedValue      any
 	}{
-		{"x"},
-		{"y"},
-		{"foobar"},
+		{"1", "let x = 5;", "x", 5},
+		{"1", "let y = 10;", "y", 10},
+		{"1", "let foobar = 383838;", "foobar", 383838},
+		{"malformed", "let foo = 1 + 2", "foo", nil},
+		{"1", "let foo = 1 + 2;", "foo", &ast.InfixExpression{
+			Token: token.Token{
+				Type:    token.PLUS,
+				Literal: "1",
+			},
+			Lhs: &ast.IntegerLiteral{
+				Token: token.Token{
+					Type:    token.INT,
+					Literal: "1",
+				},
+				Value: 1,
+			},
+			Op: "+",
+			Rhs: &ast.IntegerLiteral{
+				Token: token.Token{
+					Type:    token.INT,
+					Literal: "2",
+				},
+				Value: 2,
+			},
+		}},
 	}
 
-	for i, tt := range tests {
-		stmt := program.Statements[i]
-		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
+	for _, tc := range tests {
+		l := lexer.New(tc.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		if tc.name == "malformed" {
+			assert.NotZero(t, p.Errors())
+			continue
+		} else {
+			checkParserErrors(t, p)
+		}
+		if fmt.Sprintf("%d", len(program.Statements)) != tc.name {
+			t.Fatalf("program.Statements doen't contain %s statements. got=%d", tc.name, len(program.Statements))
+		}
+		stmt := program.Statements[0]
+		if !testLetStatement(t, stmt, tc.expectedIdentifier, tc.expectedValue) {
 			return
 		}
 	}
 }
 
-func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
+func testLetStatement(t *testing.T, s ast.Statement, name string, value any) bool {
 	if s.TokenLiteral() != "let" {
 		t.Errorf("should be a let, but got: %v", s.TokenLiteral())
 		return false
@@ -64,7 +89,7 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 		return false
 	}
 
-	// TODO: the right side is an expression, we haven't implement expression parsing yet.
+	testExpression(t, letStmt.Value, value)
 
 	return true
 
@@ -84,22 +109,54 @@ func checkParserErrors(t *testing.T, p *Parser) {
 }
 
 func TestReturnStatements(t *testing.T) {
-	input := `
-	return 5;
-	return 10;
-	return 993 322;
-`
-
-	l := lexer.New(input)
-	p := New(l)
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements doen't contain 3 statements. got=%d", len(program.Statements))
+	tests := []struct {
+		name          string
+		input         string
+		expectedValue any
+	}{
+		{"1", "return 5;", 5},
+		{"1", "return 10;", 10},
+		{"2", "return 993;322", 993},
+		{"malformed", "return 993 322", nil},
+		{"1", "return 1 + 2;", &ast.InfixExpression{
+			Token: token.Token{
+				Type:    token.PLUS,
+				Literal: "1",
+			},
+			Lhs: &ast.IntegerLiteral{
+				Token: token.Token{
+					Type:    token.INT,
+					Literal: "1",
+				},
+				Value: 1,
+			},
+			Op: "+",
+			Rhs: &ast.IntegerLiteral{
+				Token: token.Token{
+					Type:    token.INT,
+					Literal: "2",
+				},
+				Value: 2,
+			},
+		}},
 	}
 
-	for _, stmt := range program.Statements {
+	for _, tc := range tests {
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		if tc.name == "malformed" {
+			assert.NotZero(t, p.Errors())
+			continue
+		} else {
+			checkParserErrors(t, p)
+		}
+
+		if fmt.Sprintf("%d", len(program.Statements)) != tc.name {
+			t.Fatalf("program.Statements doen't contain %s statements. got=%d", tc.name, len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
 		returnStmt, ok := stmt.(*ast.ReturnStatement)
 		if !ok {
 			t.Errorf("stmt not a return statement. got=%T", stmt)
@@ -110,6 +167,7 @@ func TestReturnStatements(t *testing.T) {
 			t.Errorf("returnStmt TokenLiteral not 'return'. got=%q", returnStmt.TokenLiteral())
 		}
 
+		testExpression(t, returnStmt.ReturnValue, tc.expectedValue)
 	}
 
 }
@@ -180,12 +238,12 @@ func TestPrefixExpressions(t *testing.T) {
 		assert.True(t, ok, "should be an prefix expression, but got %T", stmt.Expression)
 		assert.Equal(t, x.op, preStmt.Op, "parse op error")
 		t.Logf("input: %v, expression: %v", x.input, preStmt.String())
-		testLiteralExpression(t, preStmt.Rhs, x.value)
+		testExpression(t, preStmt.Rhs, x.value)
 	}
 
 }
 
-func testLiteralExpression(t *testing.T, exp ast.Expression, expected any) {
+func testExpression(t *testing.T, exp ast.Expression, expected any) {
 	switch v := expected.(type) {
 	case int:
 		testIntegerLiteral(t, exp, v)
@@ -195,6 +253,10 @@ func testLiteralExpression(t *testing.T, exp ast.Expression, expected any) {
 		testIdentifier(t, exp, v)
 	case bool:
 		testBoolean(t, exp, v)
+	case *ast.InfixExpression:
+		testInfixExpression(t, exp, v.Lhs, v.Op, v.Rhs)
+	case *ast.IntegerLiteral:
+		testIntegerLiteral(t, exp, v.Value)
 	default:
 		t.Errorf("testLiteralExpression: unsupported type %T", expected)
 	}
@@ -204,9 +266,9 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left any, op string, 
 	t.Logf("testing infix expression: %v, expected: %v %v %v", exp, left, op, right)
 	e, ok := exp.(*ast.InfixExpression)
 	assert.True(t, ok, "should be an infix expression")
-	testLiteralExpression(t, e.Lhs, left)
+	testExpression(t, e.Lhs, left)
 	assert.Equal(t, op, e.Op)
-	testLiteralExpression(t, e.Rhs, right)
+	testExpression(t, e.Rhs, right)
 }
 
 func testBoolean(t *testing.T, ep ast.Expression, value bool) {
@@ -325,7 +387,7 @@ func TestBooleanExpression(t *testing.T) {
 
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		assert.True(t, ok, "should be an expression statement")
-		testLiteralExpression(t, stmt.Expression, tc.expected)
+		testExpression(t, stmt.Expression, tc.expected)
 	}
 }
 
@@ -336,7 +398,7 @@ func TestIfExpression(t *testing.T) {
 	}
 
 	for _, tc := range []testcase{
-		{"if (x < y) {x}", "TODO"},
+		{"if (x < y) {x}", ""},
 	} {
 
 		l := lexer.New(tc.input)
@@ -368,7 +430,7 @@ func TestIfElseExpression(t *testing.T) {
 	}
 
 	for _, tc := range []testcase{
-		{"if (x < y) {x} else {y}", "TODO"},
+		{"if (x < y) {x} else {y}", ""},
 	} {
 
 		l := lexer.New(tc.input)
@@ -407,7 +469,7 @@ func TestFunctionLiteral(t *testing.T) {
 	}
 
 	for _, tc := range []testcase{
-		{"fn(x,y){x+y;}", "TODO"},
+		{"fn(x,y){x+y;}", ""},
 	} {
 
 		l := lexer.New(tc.input)
@@ -423,8 +485,8 @@ func TestFunctionLiteral(t *testing.T) {
 		exp, ok := stmt.Expression.(*ast.FunctionLiteral)
 		assert.True(t, ok, "should be a function literal expression statement")
 
-		testLiteralExpression(t, exp.Parameters[0], "x")
-		testLiteralExpression(t, exp.Parameters[1], "y")
+		testExpression(t, exp.Parameters[0], "x")
+		testExpression(t, exp.Parameters[1], "y")
 
 		body := exp.Body
 		assert.Equal(t, 1, len(body.Statements))
