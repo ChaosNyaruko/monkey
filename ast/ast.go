@@ -4,6 +4,7 @@ package ast
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/ChaosNyaruko/monkey/token"
 )
@@ -248,5 +249,30 @@ func (b *BlockStatement) String() string {
 
 func (i *BlockStatement) statementNode() {}
 func (i *BlockStatement) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+type FunctionLiteral struct {
+	Token      token.Token   // "fn"
+	Parameters []*Identifier // (x, y)
+	Body       *BlockStatement
+}
+
+func (i *FunctionLiteral) String() string {
+	var out bytes.Buffer
+	params := []string{}
+	for _, p := range i.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ","))
+	out.WriteString(")")
+	out.WriteString(i.Body.String())
+	return out.String()
+}
+
+func (i *FunctionLiteral) expressionNode() {}
+func (i *FunctionLiteral) TokenLiteral() string {
 	return i.Token.Literal
 }

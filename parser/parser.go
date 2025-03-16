@@ -62,6 +62,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixFnMap[token.FALSE] = p.parseBoolean
 	p.prefixFnMap[token.LPAREN] = p.parseGroupingExpression
 	p.prefixFnMap[token.IF] = p.parseIfElseExpression
+	p.prefixFnMap[token.FUNCTION] = p.parseFunctionLiteral
 	p.infixFnMap[token.PLUS] = p.parseInfixExpression
 	p.infixFnMap[token.MINUS] = p.parseInfixExpression
 	p.infixFnMap[token.ASTERISK] = p.parseInfixExpression
@@ -357,3 +358,51 @@ type (
 	prefixFn func() ast.Expression
 	infixFn  func(lhs ast.Expression) ast.Expression // res = lhs + rhs
 )
+
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	if p.peekTokenIs(token.RPAREN) {
+		// no params
+		p.nextToken()
+		return nil
+	}
+
+	p.nextToken() // move to the first identifier
+	id := p.parseIdentifier().(*ast.Identifier)
+	ids := []*ast.Identifier{id}
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		id := p.parseIdentifier().(*ast.Identifier)
+		ids = append(ids, id)
+	}
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return ids
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	f := &ast.FunctionLiteral{
+		Token: p.curToken,
+		Body:  &ast.BlockStatement{},
+	}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	f.Parameters = p.parseFunctionParameters()
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	f.Body = p.parseBlockStatement()
+
+	// TODO(remove)
+	if !p.curTokenIs(token.RBRACE) {
+		panic("the { is not closed")
+	}
+
+	return f
+}
