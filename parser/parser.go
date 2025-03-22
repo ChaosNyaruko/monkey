@@ -271,6 +271,18 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return program
 }
 
+func (p *Parser) Error() error {
+	if len(p.errors) == 0 {
+		return nil
+	}
+
+	var s string
+	for _, msg := range p.errors {
+		s += "\t" + msg + "\n"
+	}
+	return fmt.Errorf("parser error: %v", s)
+}
+
 func (p *Parser) Errors() []string {
 	return p.errors
 }

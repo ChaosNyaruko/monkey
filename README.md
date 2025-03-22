@@ -158,3 +158,23 @@ let f = fn(a, b) { return a + b;}
 ```
 f(1,2)
 ```
+
+# Evaluate
+- tree-traversal
+- byte-code: JVM
+- native binary: Go/C++/C/Rust/...
+## object
+解释器内部对类型的某种存储
+struct {
+  []bit
+}
+“对象系统”
+### Integer
+### Boolean
+### Null
+
+## Eval
+
+# References
+- https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf
+- https://www.khoury.northeastern.edu/home/wand/eopl/
