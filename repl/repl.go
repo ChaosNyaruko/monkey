@@ -53,13 +53,17 @@ func Start(in io.Reader, out io.Writer) error {
 			printErrors(out, p.Error())
 			continue
 		}
+		// evaluate: print the well-formed AST -> flag
+		// fmt.Fprintf(out, "%s\n", program.String())
 		ob, err := eval.Eval(program)
 		if err != nil {
 			fmt.Fprintf(out, "eval err: %v", err)
 			continue
 		}
-		// evaluate: print the well-formed AST -> flag
-		// fmt.Fprintf(out, "%s\n", program.String())
+		if ob == nil { // EOF reached
+			// fmt.Fprintf(out, "lexer: %+v, parser: %v, program: %v\n", l, p, program)
+			continue
+		}
 		fmt.Fprintf(out, "%s\n", ob.Inspect())
 	}
 }
