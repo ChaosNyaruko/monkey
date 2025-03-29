@@ -103,8 +103,56 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 		return &object.ReturnValue{
 			Value: rValue,
 		}, err
+	case *ast.FunctionLiteral:
+		params := node.Parameters
+		body := node.Body
+		return &object.Function{
+			Parameters: params,
+			Body:       body,
+			Env:        env,
+		}, nil
+	case *ast.CallExpression:
+		f, err := Eval(node.F, env)
+		if err != nil {
+			return nil, err
+		}
+		// eval arguments
+		args, err := evalArguments(node.Arguments, env)
+		return callFunction(f, args)
 	}
 	return nil, fmt.Errorf("unsupported object type: %T\n", node)
+}
+
+func callFunction(fn object.Object, args []object.Object) (object.Object, error) {
+	f, ok := fn.(*object.Function)
+	if !ok {
+		return nil, fmt.Errorf("%v is not a Function Object", f.Inspect())
+	}
+	newEnv := object.NewEnvironment(f.Env)
+	for i, p := range f.Parameters {
+		newEnv.Set(p.Value, args[i])
+	}
+
+	val, err := Eval(f.Body, newEnv)
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := val.(*object.ReturnValue); ok {
+		return v.Value, nil
+	}
+	return val, nil
+}
+
+func evalArguments(args []ast.Expression, env *object.Environment) ([]object.Object, error) {
+	var res = make([]object.Object, 0, len(args))
+	for _, a := range args {
+		v, err := Eval(a, env)
+		if err != nil {
+			return nil, fmt.Errorf("passing arguments error: [%v]%v", a, err)
+		}
+		res = append(res, v)
+	}
+	return res, nil
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) (object.Object, error) {
@@ -223,6 +271,7 @@ func evalBlockStatements(stmts []ast.Statement, env *object.Environment) (object
 			return nil, err
 		}
 		if r, ok := res.(*object.ReturnValue); ok {
+			// fmt.Printf("return value in blockstatement: %v\n", s.String())
 			return r, err
 		}
 	}

@@ -14,6 +14,87 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestCallFunction(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		{`
+			let add = fn(x) {
+				fn(y) {
+					x + y
+				}
+			};
+
+			let addTwo = add(2);
+			let c = addTwo(8);
+			return c;
+`,
+			10,
+			nil,
+		},
+		{"let add = fn(x, y, c) { return fn() {return x + y + c; }();}; add(1,2,5)", 8, nil},
+		{"let c = 5; let add = fn(x, y) {return x + y + c;}; add(1,2)", 8, nil},
+		// {"let c = 5; let add5 = fn(x, y) {return x + y + c;}; add(1,2)", 8, error},
+		{"let add = fn(x, y) {x + y;}; add(1,2)", 3, nil},
+		{"let add = fn(x, y) {x + y;}; add(1,add(2,3))", 6, nil},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "input: %v, actual: %v", tc.input, err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
+func TestEvalFunction(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		{"fn(x, y) {return x + y;}", "fn(x,y){return (x+y);}\n", nil},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			t.Logf("err: %v", err)
+			assert.NotNil(t, tc.err, "input: %v", tc.input)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
 func TestEvalLetStatement(t *testing.T) {
 	type testcase struct {
 		input    string
@@ -29,7 +110,6 @@ func TestEvalLetStatement(t *testing.T) {
 	for _, tc := range tests {
 		got, err := stringToObject(tc.input)
 		if err != nil {
-			t.Logf("err: %v", err)
 			assert.NotNil(t, tc.err, "input: %v", tc.input)
 			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
 				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
@@ -183,7 +263,7 @@ func stringToObject(input string) (object.Object, error) {
 	if ob, err := stringToAst(input); err != nil {
 		return nil, err
 	} else {
-		env := object.NewEnvironment()
+		env := object.NewEnvironment(nil)
 		return Eval(ob, env)
 	}
 
@@ -191,7 +271,7 @@ func stringToObject(input string) (object.Object, error) {
 
 func testIntegerObject(t *testing.T, input string, got object.Object, expected int) {
 	i, ok := got.(*object.Integer)
-	assert.True(t, ok, "expected an integer object, but got: %T", got)
+	assert.True(t, ok, "expected an integer object, but got: %T, input: %v", got, input)
 	assert.Equal(t, expected, i.Value, input)
 }
 

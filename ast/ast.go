@@ -296,7 +296,7 @@ func (i *FunctionLiteral) TokenLiteral() string {
 type CallExpression struct {
 	Token     token.Token // "("
 	Arguments []Expression
-	F         Expression // the called function, add(1+2) or function literal
+	F         Expression // the called function, add(1+2) or function literal `fn(x,y){x+y;}(1,2)`
 }
 
 func (i *CallExpression) String() string {
