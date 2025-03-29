@@ -1,9 +1,12 @@
 package eval
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChaosNyaruko/monkey/ast"
 	"github.com/ChaosNyaruko/monkey/lexer"
@@ -11,40 +14,35 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
-func TestEvalReturn(t *testing.T) {
+func TestEvalLetStatement(t *testing.T) {
 	type testcase struct {
 		input    string
 		expected any
-		hasError bool
+		err      error
 	}
 	tests := []testcase{
-		{"return 2;", 2, false},
-		{"return 2; 9", 2, false},
-		{"return 1+2*3; 9", 7, false},
-		{"9;return 1+2*3; 10", 7, false},
-		{"return 1", 0, true},
-		{`if (10>1) {return 10; 1}`, 10, false},
-		{`if (10>1) {
-            if (10>1) {
-               return 10;
-            }
-            return 1;
-          }`, 10, false},
+		{"let a = 5; a", 5, nil},
+		{"let a = 5; a;", 5, nil},
+		{"let a = 5; let b = a; let c = (a + b)*2; c", 20, nil},
+		{"let a = x;", 0, fmt.Errorf("undefined identifier")},
 	}
 	for _, tc := range tests {
 		got, err := stringToObject(tc.input)
-		if !assert.Equal(t, tc.hasError, err != nil, "err: %v", err) {
-			t.Fatalf("input %v, to object err: %v", tc.input, err)
+		if err != nil {
+			t.Logf("err: %v", err)
+			assert.NotNil(t, tc.err, "input: %v", tc.input)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
 		}
-		if err == nil {
-			switch v := tc.expected.(type) {
-			case int:
-				testIntegerObject(t, tc.input, got, v)
-			case bool:
-				testBooleanObject(t, tc.input, got, v)
-			default:
-				testNull(t, tc.input, got)
-			}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		default:
+			testNull(t, tc.input, got)
 		}
 	}
 }
@@ -185,7 +183,8 @@ func stringToObject(input string) (object.Object, error) {
 	if ob, err := stringToAst(input); err != nil {
 		return nil, err
 	} else {
-		return Eval(ob)
+		env := object.NewEnvironment()
+		return Eval(ob, env)
 	}
 
 }

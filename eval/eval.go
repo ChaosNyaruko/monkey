@@ -37,30 +37,30 @@ func isTrue(obj object.Object) bool {
 	return true
 }
 
-func evalIfElse(node *ast.IfExpression) (object.Object, error) {
-	condition, err := Eval(node.Condition)
+func evalIfElse(node *ast.IfExpression, env *object.Environment) (object.Object, error) {
+	condition, err := Eval(node.Condition, env)
 	if err != nil {
 		return nil, err
 	}
 	if isTrue(condition) {
-		return Eval(node.If)
+		return Eval(node.If, env)
 	} else if node.Else != nil {
-		return Eval(node.Else)
+		return Eval(node.Else, env)
 	}
 	// not hit if, but no else expression.
 	return NULL, nil
 }
 
-func Eval(node ast.Node) (object.Object, error) {
+func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalProgram(node.Statements)
+		return evalProgram(node.Statements, env)
 	case *ast.BlockStatement:
-		return evalBlockStatements(node.Statements)
+		return evalBlockStatements(node.Statements, env)
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression)
+		return Eval(node.Expression, env)
 	case *ast.IfExpression:
-		return evalIfElse(node)
+		return evalIfElse(node, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{
 			Value: node.Value,
@@ -70,33 +70,45 @@ func Eval(node ast.Node) (object.Object, error) {
 	case *ast.NullExpression:
 		return NULL, nil
 	case *ast.PrefixExpression:
-		rhs, err := Eval(node.Rhs)
+		rhs, err := Eval(node.Rhs, env)
 		if err != nil {
 			return nil, err
 		}
 		res, err := evalPrefixExpression(node.Op, rhs)
 		return res, err
 	case *ast.InfixExpression:
-		lhs, err := Eval(node.Lhs)
+		lhs, err := Eval(node.Lhs, env)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := Eval(node.Rhs)
+		rhs, err := Eval(node.Rhs, env)
 		if err != nil {
 			return nil, err
 		}
 		res, err := evalInfixExpression(node.Op, lhs, rhs)
 		return res, err
 	case *ast.LetStatement:
-		return NULL, nil
+		val, err := Eval(node.Value, env)
+		if err != nil {
+			return nil, err
+		}
+		_, err = env.Set(node.Name.Value, val)
+		return NULL, err
+	case *ast.Identifier:
+		// TODO: let x = (let c = 1);
+		return evalIdentifier(node, env)
 	case *ast.ReturnStatement: // return's value if the expression after the "return".
 		// return 2;
-		rValue, err := Eval(node.ReturnValue) // rValue -> Integar
+		rValue, err := Eval(node.ReturnValue, env) // rValue -> Integar
 		return &object.ReturnValue{
 			Value: rValue,
 		}, err
 	}
 	return nil, fmt.Errorf("unsupported object type: %T\n", node)
+}
+
+func evalIdentifier(node *ast.Identifier, env *object.Environment) (object.Object, error) {
+	return env.Get(node.Value)
 }
 
 func evalInfixInteger(op string, l, r *object.Integer) (object.Object, error) {
@@ -173,11 +185,11 @@ func evalPrefixExpression(op string, rhs object.Object) (object.Object, error) {
 	return nil, fmt.Errorf("unsupported prefix operator: %q\n", op)
 }
 
-func evalProgram(stmts []ast.Statement) (object.Object, error) {
+func evalProgram(stmts []ast.Statement, env *object.Environment) (object.Object, error) {
 	var res object.Object
 	var err error
 	for _, s := range stmts {
-		res, err = Eval(s)
+		res, err = Eval(s, env)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +200,7 @@ func evalProgram(stmts []ast.Statement) (object.Object, error) {
 	return res, nil
 }
 
-func evalBlockStatements(stmts []ast.Statement) (object.Object, error) {
+func evalBlockStatements(stmts []ast.Statement, env *object.Environment) (object.Object, error) {
 	/*
 	   if (true) {
 	       if (true) {
@@ -206,7 +218,7 @@ func evalBlockStatements(stmts []ast.Statement) (object.Object, error) {
 	var res object.Object
 	var err error
 	for _, s := range stmts {
-		res, err = Eval(s)
+		res, err = Eval(s, env)
 		if err != nil {
 			return nil, err
 		}

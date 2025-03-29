@@ -7,6 +7,7 @@ import (
 
 	"github.com/ChaosNyaruko/monkey/eval"
 	"github.com/ChaosNyaruko/monkey/lexer"
+	"github.com/ChaosNyaruko/monkey/object"
 	"github.com/ChaosNyaruko/monkey/parser"
 	"github.com/ChaosNyaruko/monkey/token"
 )
@@ -31,6 +32,7 @@ func Start(in io.Reader, out io.Writer) error {
 	// TODO: use GNU readline shortcuts?
 	fmt.Fprintf(out, MONKEY_FACE)
 	scanner := bufio.NewScanner(in)
+	env := object.NewEnvironment()
 	for {
 		fmt.Fprintf(out, PROMPT)
 		scanned := scanner.Scan()
@@ -55,7 +57,7 @@ func Start(in io.Reader, out io.Writer) error {
 		}
 		// evaluate: print the well-formed AST -> flag
 		// fmt.Fprintf(out, "%s\n", program.String())
-		ob, err := eval.Eval(program)
+		ob, err := eval.Eval(program, env)
 		if err != nil {
 			fmt.Fprintf(out, "eval err: %v", err)
 			continue
