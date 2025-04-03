@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChaosNyaruko/monkey/ast"
@@ -148,4 +149,113 @@ func TestIntegerLiteral(t *testing.T) {
 	assert.Equal(t, "5", stmt.String())
 
 	assert.Equal(t, 5, stmt.Expression.(*ast.IntegerLiteral).Value)
+}
+
+func TestPrefixExpressions(t *testing.T) {
+	type testcase struct {
+		input string
+		op    string
+		value int
+	}
+
+	cases := []testcase{
+		{"!5;", "!", 5},
+		{"-10;", "-", 10},
+		// {"-!10", "-", 10},
+	}
+	for _, x := range cases {
+		l := lexer.New(x.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement,  but got %T", program.Statements[0])
+		preStmt, ok := stmt.Expression.(*ast.PrefixExpression)
+		assert.True(t, ok, "should be an prefix expression, but got %T", stmt.Expression)
+		assert.Equal(t, x.op, preStmt.Op, "parse op error")
+		t.Logf("input: %v, expression: %v", x.input, preStmt.String())
+		testIntegerLiteral(t, preStmt.Rhs, x.value)
+	}
+
+}
+
+func testIntegerLiteral(t *testing.T, ep ast.Expression, value int) {
+	in, ok := ep.(*ast.IntegerLiteral)
+	assert.True(t, ok, "should be an integer literal, but got %T", ep)
+	assert.Equal(t, fmt.Sprintf("%d", value), in.String())
+	assert.Equal(t, value, in.Value)
+}
+
+func TestInfixExpressions(t *testing.T) {
+	type testcase struct {
+		input string
+		left  int
+		op    string
+		right int
+	}
+
+	cases := []testcase{
+		{"10+2;", 10, "+", 2},
+		{"1-10;", 1, "-", 10},
+		{"5*10;", 5, "*", 10},
+		{"10/5;", 10, "/", 5},
+		{"10>5;", 10, ">", 5},
+		{"10<5;", 10, "<", 5},
+		{"10==5;", 10, "==", 5},
+		{"10!=5;", 10, "!=", 5},
+	}
+	for _, x := range cases {
+		l := lexer.New(x.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement,  but got %T, %s",
+			program.Statements[0], program.Statements[0].String())
+		infixStmt, ok := stmt.Expression.(*ast.InfixExpression)
+		assert.True(t, ok, "should be an infix expression, but got %T, %s",
+			stmt.Expression, stmt.Expression.String())
+		assert.Equal(t, x.op, infixStmt.Op, "parse op error")
+		t.Logf("input: %v, expression: %v", x.input, infixStmt.String())
+		testIntegerLiteral(t, infixStmt.Lhs, x.left)
+		testIntegerLiteral(t, infixStmt.Rhs, x.right)
+	}
+}
+
+func TestOpPrecedence(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected string
+	}
+
+	cases := []testcase{
+		{"a + b * c", "(a+(b*c))"},
+		{"a + b / c", "(a+(b/c))"},
+		{"a / b + c", "((a/b)+c)"},
+		{"a * b + c", "((a*b)+c)"},
+		{"-a * b", "((-a)*b)"},
+		{"!-a", "(!(-a))"},
+		{"a + b + c", "((a+b)+c)"},
+		{"a + b - c", "((a+b)-c)"},
+		{"a * b * c", "((a*b)*c)"},
+		{"a * b / c", "((a*b)/c)"},
+		{"a + b + c * d /f - !e * g", "(((a+b)+((c*d)/f))-((!e)*g))"},
+		{"a < b > c == d != e", "((((a<b)>c)==d)!=e)"},
+		{"a + b; b / c", "(a+b)(b/c)"},
+	}
+	for _, x := range cases {
+		l := lexer.New(x.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+		assert.Equal(t, x.expected, program.String())
+	}
 }

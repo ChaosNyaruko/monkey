@@ -40,7 +40,7 @@ parse(lhs, precedence, remain) {
 precedence = "+" i.e. 3
 lhs = "B"
 for remain not end {
-  op = nexttoken() --> "*"
+  op = peekprecedence() --> "*"
   if op < precedence {
     break
   } else {

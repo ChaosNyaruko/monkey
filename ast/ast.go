@@ -77,6 +77,50 @@ func (i *IntegerLiteral) TokenLiteral() string {
 	return i.Token.Literal
 }
 
+type InfixExpression struct {
+	Token token.Token // +-/*<> == !=
+	Lhs   Expression
+	Op    string
+	Rhs   Expression
+}
+
+func (i *InfixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(i.Lhs.String())
+	out.WriteString(i.Op)
+	out.WriteString(i.Rhs.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+func (i *InfixExpression) expressionNode() {}
+func (i *InfixExpression) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+type PrefixExpression struct {
+	Token token.Token // {BANG/MINUS, "!"/"-"}
+	Op    string
+	Rhs   Expression
+}
+
+func (i *PrefixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(i.Op)
+	out.WriteString(i.Rhs.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+func (i *PrefixExpression) expressionNode() {}
+func (i *PrefixExpression) TokenLiteral() string {
+	return i.Token.Literal
+}
+
 type LetStatement struct {
 	Token token.Token // LET
 	// let name = value
