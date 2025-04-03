@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ChaosNyaruko/monkey/ast"
@@ -396,5 +397,72 @@ func TestIfElseExpression(t *testing.T) {
 		s2, ok := b2[0].(*ast.ExpressionStatement) // y
 		assert.True(t, ok, "should be an expression statement statement")
 		testIdentifier(t, s2.Expression, "y")
+	}
+}
+
+func TestFunctionLiteral(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+	}
+
+	for _, tc := range []testcase{
+		{"fn(x,y){x+y;}", "TODO"},
+	} {
+
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement")
+		exp, ok := stmt.Expression.(*ast.FunctionLiteral)
+		assert.True(t, ok, "should be a function literal expression statement")
+
+		testLiteralExpression(t, exp.Parameters[0], "x")
+		testLiteralExpression(t, exp.Parameters[1], "y")
+
+		body := exp.Body
+		assert.Equal(t, 1, len(body.Statements))
+		testInfixExpression(t, body.Statements[0].(*ast.ExpressionStatement).Expression, "x", "+", "y")
+	}
+}
+
+func TestFunctionParameters(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected []string
+	}
+
+	for _, tc := range []testcase{
+		{"fn(x,y){x+y;}", []string{"x", "y"}},
+		{"fn(){}", nil},
+		{"fn(x){2 * x}", []string{"x"}},
+		{"fn(x,y,z){x+y*z;}", []string{"x", "y", "z"}},
+	} {
+
+		l := lexer.New(tc.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		assert.Equal(t, 1, len(program.Statements),
+			"program.Statements doesn't contain proper statements, %s", program)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		assert.True(t, ok, "should be an expression statement")
+		exp, ok := stmt.Expression.(*ast.FunctionLiteral)
+		assert.True(t, ok, "should be a function literal expression statement")
+
+		var ps []string
+		for _, p := range exp.Parameters {
+			ps = append(ps, p.String())
+		}
+		t.Logf("ps is %v", ps)
+		assert.Equal(t, strings.Join(tc.expected, ","), strings.Join(ps, ","))
 	}
 }

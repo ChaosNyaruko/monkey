@@ -147,7 +147,8 @@ if (<condition>) {<block>} else {<block>}
 let foo = if (x>y) {x} return {y};
 ```
 ### function literal
-TODO
+fn <Params list> <Body>
+<Params list> (Identifier1, Identifier2, ...)
 let f = fn(a, b) { return a + b;}
 
 ### function calling
