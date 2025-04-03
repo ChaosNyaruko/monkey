@@ -180,6 +180,7 @@ struct {
 - let x = "hello", not support escaping
 - let y = "hello" + " " + "world"
 - let y = x + " " + "world"
+- let l = len("hello")
 ## Array
 ## HashMap
 

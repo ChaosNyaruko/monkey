@@ -14,6 +14,41 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestBuiltin(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		{`len("")`, 0, nil},
+		{`len("hello")`, 5, nil},
+		{`len("hello\n")`, 7, nil},
+		{`len(1)`, 0, fmt.Errorf("not supported on INTEGER")},
+		{`len("one", "two")`, 0, fmt.Errorf("wrong number of arguments, expected 1, but got 2")},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "input: %v, actual: %v", tc.input, err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
 func TestStringConcat(t *testing.T) {
 	type testcase struct {
 		input    string

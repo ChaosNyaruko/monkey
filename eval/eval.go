@@ -128,23 +128,25 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 }
 
 func callFunction(fn object.Object, args []object.Object) (object.Object, error) {
-	f, ok := fn.(*object.Function)
-	if !ok {
-		return nil, fmt.Errorf("%v is not a Function Object", f.Inspect())
-	}
-	newEnv := object.NewEnvironment(f.Env)
-	for i, p := range f.Parameters {
-		newEnv.Set(p.Value, args[i])
-	}
+	switch f := fn.(type) {
+	case *object.Function:
+		newEnv := object.NewEnvironment(f.Env)
+		for i, p := range f.Parameters {
+			newEnv.Set(p.Value, args[i])
+		}
 
-	val, err := Eval(f.Body, newEnv)
-	if err != nil {
-		return nil, err
+		val, err := Eval(f.Body, newEnv)
+		if err != nil {
+			return nil, err
+		}
+		if v, ok := val.(*object.ReturnValue); ok {
+			return v.Value, nil
+		}
+		return val, nil
+	case *object.Builtin:
+		return f.Fn(args...)
 	}
-	if v, ok := val.(*object.ReturnValue); ok {
-		return v.Value, nil
-	}
-	return val, nil
+	return nil, fmt.Errorf("%v is not callable", fn.Inspect())
 }
 
 func evalArguments(args []ast.Expression, env *object.Environment) ([]object.Object, error) {
@@ -160,7 +162,16 @@ func evalArguments(args []ast.Expression, env *object.Environment) ([]object.Obj
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) (object.Object, error) {
-	return env.Get(node.Value)
+	if obj, err := env.Get(node.Value); err == nil {
+		return obj, nil
+	}
+
+	bti, ok := builtins[node.Value]
+	if ok {
+		return bti, nil
+	}
+
+	return nil, fmt.Errorf("undefined identifier: %s\n", node.Value)
 }
 
 func evalInfixString(op string, l, r *object.String) (object.Object, error) {

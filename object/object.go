@@ -17,6 +17,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	FUNCTION_OBJ     = "FUNCTION"
+	BUILTIN_OBJ      = "BUILTIN"
 )
 
 var _ Object = &Integer{}
@@ -117,4 +118,19 @@ func (s *String) Inspect() string {
 
 func (s *String) Type() ObjectType {
 	return STRING_OBJ
+}
+
+type BuiltinFunction func(args ...Object) (Object, error)
+
+type Builtin struct {
+	Name string
+	Fn   BuiltinFunction
+}
+
+func (b *Builtin) Inspect() string {
+	return fmt.Sprintf("%v is a builtin\n", b.Name)
+}
+
+func (b *Builtin) Type() ObjectType {
+	return BUILTIN_OBJ
 }
