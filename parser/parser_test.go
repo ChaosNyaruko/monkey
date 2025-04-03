@@ -183,6 +183,35 @@ func TestPrefixExpressions(t *testing.T) {
 
 }
 
+func testLiteralExpression(t *testing.T, exp ast.Expression, expected any) {
+	switch v := expected.(type) {
+	case int:
+		testIntegerLiteral(t, exp, v)
+	case int64:
+		testIntegerLiteral(t, exp, int(v))
+	case string:
+		testIdentifier(t, exp, v)
+	default:
+		t.Errorf("testLiteralExpression: unsupported type %T", expected)
+	}
+}
+
+func testInfixExpression(t *testing.T, exp ast.Expression, left any, op string, right any) {
+	t.Logf("testing infix expression: %v, expected: %v %v %v", exp, left, op, right)
+	e, ok := exp.(*ast.InfixExpression)
+	assert.True(t, ok, "should be an infix expression")
+	testLiteralExpression(t, e.Lhs, left)
+	assert.Equal(t, op, e.Op)
+	testLiteralExpression(t, e.Rhs, right)
+}
+
+func testIdentifier(t *testing.T, ep ast.Expression, value string) {
+	ident, ok := ep.(*ast.Identifier)
+	assert.True(t, ok, "should be an identifier, but got %T", ep)
+	assert.Equal(t, value, ident.Value)
+	assert.Equal(t, value, ident.TokenLiteral())
+}
+
 func testIntegerLiteral(t *testing.T, ep ast.Expression, value int) {
 	in, ok := ep.(*ast.IntegerLiteral)
 	assert.True(t, ok, "should be an integer literal, but got %T", ep)
@@ -193,9 +222,9 @@ func testIntegerLiteral(t *testing.T, ep ast.Expression, value int) {
 func TestInfixExpressions(t *testing.T) {
 	type testcase struct {
 		input string
-		left  int
+		left  any
 		op    string
-		right int
+		right any
 	}
 
 	cases := []testcase{
@@ -207,6 +236,7 @@ func TestInfixExpressions(t *testing.T) {
 		{"10<5;", 10, "<", 5},
 		{"10==5;", 10, "==", 5},
 		{"10!=5;", 10, "!=", 5},
+		{"alice*bob;", "alice", "*", "bob"},
 	}
 	for _, x := range cases {
 		l := lexer.New(x.input)
@@ -220,13 +250,7 @@ func TestInfixExpressions(t *testing.T) {
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		assert.True(t, ok, "should be an expression statement,  but got %T, %s",
 			program.Statements[0], program.Statements[0].String())
-		infixStmt, ok := stmt.Expression.(*ast.InfixExpression)
-		assert.True(t, ok, "should be an infix expression, but got %T, %s",
-			stmt.Expression, stmt.Expression.String())
-		assert.Equal(t, x.op, infixStmt.Op, "parse op error")
-		t.Logf("input: %v, expression: %v", x.input, infixStmt.String())
-		testIntegerLiteral(t, infixStmt.Lhs, x.left)
-		testIntegerLiteral(t, infixStmt.Rhs, x.right)
+		testInfixExpression(t, stmt.Expression, x.left, x.op, x.right)
 	}
 }
 
