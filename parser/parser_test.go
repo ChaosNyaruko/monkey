@@ -5,6 +5,7 @@ import (
 
 	"github.com/ChaosNyaruko/monkey/ast"
 	"github.com/ChaosNyaruko/monkey/lexer"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLetStatments(t *testing.T) {
@@ -109,4 +110,42 @@ func TestReturnStatements(t *testing.T) {
 
 	}
 
+}
+
+func TestIdentifierExpression(t *testing.T) {
+	input := `
+	foobar;
+	`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assert.Equal(t, 1, len(program.Statements),
+		"program.Statements doesn't contain proper statements, %s", program)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	assert.True(t, ok, "should be an expression statement")
+	assert.Equal(t, "foobar", stmt.String())
+}
+
+func TestIntegerLiteral(t *testing.T) {
+	input := `
+	5;
+	`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assert.Equal(t, 1, len(program.Statements),
+		"program.Statements doesn't contain proper statements, %s", program)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	assert.True(t, ok, "should be an expression statement")
+	assert.Equal(t, "5", stmt.String())
+
+	assert.Equal(t, 5, stmt.Expression.(*ast.IntegerLiteral).Value)
 }
