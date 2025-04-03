@@ -33,6 +33,18 @@ func (l *Lexer) readNumber() string {
 	return l.input[position:l.position]
 }
 
+// readString returns the string without the quotes.
+func (l *Lexer) readString() string {
+	pos := l.position + 1 // eat the staring quote
+	for {
+		l.readChar()
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+	return l.input[pos:l.position]
+}
+
 func (l *Lexer) readIdentifier() string {
 	position := l.position
 	for isLetter(l.ch) {
@@ -64,6 +76,9 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.skipWitespaces()
 	switch l.ch {
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 	case '=':
 		if l.peekChar() == '=' {
 			// 10 == 10

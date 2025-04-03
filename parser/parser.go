@@ -65,6 +65,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixFnMap[token.LPAREN] = p.parseGroupingExpression
 	p.prefixFnMap[token.IF] = p.parseIfElseExpression
 	p.prefixFnMap[token.FUNCTION] = p.parseFunctionLiteral
+	p.prefixFnMap[token.STRING] = p.parseStringLiteral
 	p.infixFnMap[token.PLUS] = p.parseInfixExpression
 	p.infixFnMap[token.MINUS] = p.parseInfixExpression
 	p.infixFnMap[token.ASTERISK] = p.parseInfixExpression
@@ -442,6 +443,15 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return ids
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	raw := p.curToken.Literal
+	// TODO: check the unclosed quotes.
+	return &ast.StringLiteral{
+		Token: p.curToken,
+		Value: raw,
+	}
 }
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {

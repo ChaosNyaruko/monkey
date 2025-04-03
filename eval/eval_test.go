@@ -14,6 +14,73 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestStringConcat(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		{`"hello "+"world"`, "hello world", nil},
+		{`"hello "-"world"`, "", fmt.Errorf(`unsupported infix operator for strings`)},
+		{`"hello" == "world"`, false, nil},
+		{`"hello" == "hello"`, true, nil},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "input: %v, actual: %v", tc.input, err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
+func TestStringLiteral(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		// {`"hello world"`, `hello world`, nil},
+		// {`"hello world\n"`, `hello world\n`, nil},
+		{`"hello world`, "hello world", nil},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "input: %v, actual: %v", tc.input, err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
 func TestCallFunction(t *testing.T) {
 	type testcase struct {
 		input    string

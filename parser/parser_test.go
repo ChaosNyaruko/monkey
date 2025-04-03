@@ -11,6 +11,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestStringLiteral(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedValue string
+	}{
+		{`"hello world"`, `hello world`},
+	}
+
+	for _, tc := range tests {
+		l := lexer.New(tc.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		s, ok := stmt.Expression.(*ast.StringLiteral)
+		assert.True(t, ok, "should be a string literal, but got %T for input: %v", stmt, tc.input)
+		assert.Equal(t, tc.expectedValue, s.Value)
+	}
+}
+
 func TestLetStatments(t *testing.T) {
 	tests := []struct {
 		name               string

@@ -61,6 +61,10 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 		return Eval(node.Expression, env)
 	case *ast.IfExpression:
 		return evalIfElse(node, env)
+	case *ast.StringLiteral:
+		return &object.String{
+			Value: node.Value,
+		}, nil
 	case *ast.IntegerLiteral:
 		return &object.Integer{
 			Value: node.Value,
@@ -159,6 +163,24 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) (object.Objec
 	return env.Get(node.Value)
 }
 
+func evalInfixString(op string, l, r *object.String) (object.Object, error) {
+	switch op {
+	case "+":
+		return &object.String{
+			Value: l.Value + r.Value,
+		}, nil
+	case "==":
+		return &object.Boolean{
+			Value: l.Value == r.Value,
+		}, nil
+	case "!=":
+		return &object.Boolean{
+			Value: l.Value != r.Value,
+		}, nil
+	}
+	return nil, fmt.Errorf("unsupported infix operator for strings: %q %s %q\n", l.Inspect(), op, r.Inspect())
+}
+
 func evalInfixInteger(op string, l, r *object.Integer) (object.Object, error) {
 	switch op {
 	case "+":
@@ -195,6 +217,9 @@ func evalInfixExpression(op string, lhs, rhs object.Object) (object.Object, erro
 	if lType == object.INTEGER_OBJ && rType == object.INTEGER_OBJ {
 		l, r := lhs.(*object.Integer), rhs.(*object.Integer)
 		return evalInfixInteger(op, l, r)
+	} else if lType == object.STRING_OBJ && rType == object.STRING_OBJ {
+		l, r := lhs.(*object.String), rhs.(*object.String)
+		return evalInfixString(op, l, r)
 	}
 
 	if lType == object.BOOLEAN_OBJ && rType == object.BOOLEAN_OBJ {

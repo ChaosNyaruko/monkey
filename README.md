@@ -175,6 +175,14 @@ struct {
 
 ## Eval
 
+# More Data Structures and Builtins
+## String
+- let x = "hello", not support escaping
+- let y = "hello" + " " + "world"
+- let y = x + " " + "world"
+## Array
+## HashMap
+
 # References
 - https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf
 - https://www.khoury.northeastern.edu/home/wand/eopl/
