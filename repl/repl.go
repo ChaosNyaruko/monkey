@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChaosNyaruko/monkey/eval"
 	"github.com/ChaosNyaruko/monkey/lexer"
 	"github.com/ChaosNyaruko/monkey/parser"
 	"github.com/ChaosNyaruko/monkey/token"
@@ -48,19 +49,21 @@ func Start(in io.Reader, out io.Writer) error {
 
 		p := parser.New(l)
 		program := p.ParseProgram()
-		errs := p.Errors()
-		if len(errs) != 0 {
-			printErrors(out, errs)
+		if p.Error() != nil {
+			printErrors(out, p.Error())
 			continue
 		}
-
-		// evaluate: print the well-formed AST
-		fmt.Fprintf(out, "%s\n", program.String())
+		ob, err := eval.Eval(program)
+		if err != nil {
+			fmt.Fprintf(out, "eval err: %v", err)
+			continue
+		}
+		// evaluate: print the well-formed AST -> flag
+		// fmt.Fprintf(out, "%s\n", program.String())
+		fmt.Fprintf(out, "%s\n", ob.Inspect())
 	}
 }
 
-func printErrors(out io.Writer, errs []string) {
-	for _, msg := range errs {
-		io.WriteString(out, "\t"+msg+"\n")
-	}
+func printErrors(out io.Writer, err error) {
+	io.WriteString(out, err.Error())
 }
