@@ -274,6 +274,11 @@ func TestOpPrecedence(t *testing.T) {
 		{"a + b + c * d /f - !e * g", "(((a+b)+((c*d)/f))-((!e)*g))"},
 		{"a < b > c == d != e", "((((a<b)>c)==d)!=e)"},
 		{"a + b; b / c", "(a+b)(b/c)"},
+		{"true", "true"},
+		{"false", "false"},
+		{"3 > 5 == false", "(3 > 5) == false"},
+		{"3 < 5 == true", "(3 < 5) == true"},
+		{"true == 3 < 5", "true == (3 < 5)"},
 	}
 	for _, x := range cases {
 		l := lexer.New(x.input)
