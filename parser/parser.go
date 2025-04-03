@@ -189,7 +189,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	fn, ok := p.prefixFnMap[p.curToken.Type]
 	if !ok {
-		msg := fmt.Sprintf("undefined prefix operator: %q", p.curToken.Literal)
+		msg := fmt.Sprintf("undefined prefix operator: %q", p.curToken.Type)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
