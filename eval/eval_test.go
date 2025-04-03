@@ -11,6 +11,30 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestEvalBang(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected bool
+		hasError bool
+	}
+	tests := []testcase{
+		{"!true", false, false},
+		{"!false", true, false},
+		{"!5", false, false},
+		{"!0", false, false},
+		{"!!5", true, false},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if !assert.Equal(t, tc.hasError, err != nil, "err: %v", err) {
+			t.Fatalf("input to object err: %v", err)
+		}
+		if err == nil {
+			testBooleanObject(t, tc.input, got, tc.expected)
+		}
+	}
+}
+
 func TestEvalBoolean(t *testing.T) {
 	type testcase struct {
 		input    string
@@ -20,7 +44,24 @@ func TestEvalBoolean(t *testing.T) {
 	tests := []testcase{
 		{"true", true, false},
 		{"false", false, false},
+		{"true == true", true, false},
+		{"false == false", true, false},
+		{"true != false", true, false},
+		{"false != true", true, false},
+		{"true != true", false, false},
+		{"false != false", false, false},
+		{"true == false", false, false},
+		{"false == true", false, false},
+		{"1 < 2", true, false},
+		{"1 > 2", false, false},
+		{"2 == 2", true, false},
+		{"2 != 2", false, false},
+		{"2 == (1+1)", true, false},
+		{"3 == 2 * (1+1)", false, false},
+		{"3 != 2 * (1+1)", true, false},
 		{"TRUE", false, true}, // should report an error
+		{"false < true", false, true},
+		{"false > true", false, true},
 	}
 	for _, tc := range tests {
 		got, err := stringToObject(tc.input)
@@ -28,7 +69,7 @@ func TestEvalBoolean(t *testing.T) {
 			t.Fatalf("input to object err: %v", err)
 		}
 		if err == nil {
-			testBooleanObject(t, got, tc.expected)
+			testBooleanObject(t, tc.input, got, tc.expected)
 		}
 	}
 }
@@ -42,7 +83,15 @@ func TestEvalInteger(t *testing.T) {
 	tests := []testcase{
 		{"5", 5, false},
 		{"123", 123, false},
+		{"-5", -5, false},
+		{"-10", -10, false},
+		{"1+2+3+4-10", 0, false},
+		{"-1+2*-2", -5, false},
+		{"10/2*3", 15, false},
+		{"(1+3)*-4", -16, false},
+		{"(4+3)*(4)+-29", -1, false},
 		{"111111111111111111111111111111111111", 0, true}, // should report an error
+		{"-true", 0, true},                                // should report an error
 	}
 	for _, tc := range tests {
 		got, err := stringToObject(tc.input)
@@ -76,8 +125,8 @@ func testIntegerObject(t *testing.T, got object.Object, expected int) {
 	assert.Equal(t, expected, i.Value)
 }
 
-func testBooleanObject(t *testing.T, got object.Object, expected bool) {
+func testBooleanObject(t *testing.T, input string, got object.Object, expected bool) {
 	i, ok := got.(*object.Boolean)
 	assert.True(t, ok, "expected a boolean object, but got: %T", got)
-	assert.Equal(t, expected, i.Value)
+	assert.Equal(t, expected, i.Value, input)
 }

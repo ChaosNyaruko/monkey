@@ -178,3 +178,4 @@ struct {
 # References
 - https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf
 - https://www.khoury.northeastern.edu/home/wand/eopl/
+- https://book.douban.com/subject/30348061/
