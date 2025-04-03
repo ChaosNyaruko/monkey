@@ -32,7 +32,7 @@ func Start(in io.Reader, out io.Writer) error {
 	// TODO: use GNU readline shortcuts?
 	fmt.Fprintf(out, MONKEY_FACE)
 	scanner := bufio.NewScanner(in)
-	env := object.NewEnvironment()
+	env := object.NewEnvironment(nil)
 	for {
 		fmt.Fprintf(out, PROMPT)
 		scanned := scanner.Scan()
