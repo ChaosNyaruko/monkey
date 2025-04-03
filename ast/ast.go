@@ -9,11 +9,13 @@ import (
 )
 
 var _ Statement = &LetStatement{}
+var _ Statement = &BlockStatement{}
 var _ Expression = &Identifier{}
 var _ Expression = &IntegerLiteral{}
 var _ Expression = &PrefixExpression{}
 var _ Expression = &InfixExpression{}
 var _ Expression = &BooleanExpression{}
+var _ Expression = &IfExpression{}
 
 type Node interface {
 	TokenLiteral() string
@@ -199,4 +201,52 @@ func (es *ExpressionStatement) String() string {
 func (es *ExpressionStatement) statementNode() {}
 func (es *ExpressionStatement) TokenLiteral() string {
 	return es.Token.Literal
+}
+
+type IfExpression struct {
+	Token     token.Token // "if"
+	Condition Expression
+	If        *BlockStatement
+	Else      *BlockStatement
+}
+
+func (i *IfExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("if")
+	out.WriteString(i.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(i.If.String())
+
+	if i.Else != nil {
+		out.WriteString("else ")
+		out.WriteString(i.Else.String())
+	}
+
+	return out.String()
+}
+
+func (i *IfExpression) expressionNode() {}
+func (i *IfExpression) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+type BlockStatement struct {
+	Token      token.Token
+	Statements []Statement
+}
+
+func (b *BlockStatement) String() string {
+	var out bytes.Buffer
+
+	for _, s := range b.Statements {
+		out.WriteString(s.String())
+	}
+
+	return out.String()
+}
+
+func (i *BlockStatement) statementNode() {}
+func (i *BlockStatement) TokenLiteral() string {
+	return i.Token.Literal
 }

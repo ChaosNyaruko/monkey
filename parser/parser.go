@@ -34,7 +34,7 @@ type Parser struct {
 	infixFnMap  map[token.TokenType]infixFn
 }
 
-var precedneces = map[token.TokenType]int{
+var precedences = map[token.TokenType]int{
 	token.PLUS:     SUM,
 	token.MINUS:    SUM,
 	token.ASTERISK: PRODUCT,
@@ -60,6 +60,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixFnMap[token.MINUS] = p.parsePrefixExpression
 	p.prefixFnMap[token.TRUE] = p.parseBoolean
 	p.prefixFnMap[token.FALSE] = p.parseBoolean
+	p.prefixFnMap[token.LPAREN] = p.parseGroupingExpression
+	p.prefixFnMap[token.IF] = p.parseIfElseExpression
 	p.infixFnMap[token.PLUS] = p.parseInfixExpression
 	p.infixFnMap[token.MINUS] = p.parseInfixExpression
 	p.infixFnMap[token.ASTERISK] = p.parseInfixExpression
@@ -74,14 +76,14 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 func (p *Parser) peekPrecedence() int {
-	if p, ok := precedneces[p.peekToken.Type]; ok {
+	if p, ok := precedences[p.peekToken.Type]; ok {
 		return p
 	}
 	return LOWEST
 }
 
 func (p *Parser) curPrecedence() int {
-	if p, ok := precedneces[p.curToken.Type]; ok {
+	if p, ok := precedences[p.curToken.Type]; ok {
 		return p
 	}
 	return LOWEST
@@ -100,6 +102,68 @@ func (p *Parser) parseInfixExpression(lhs ast.Expression) ast.Expression {
 	// 10 + 2
 	res.Rhs = p.parseExpression(curPrecedence)
 	return res
+}
+
+func (p *Parser) parseIfElseExpression() ast.Expression {
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	p.nextToken()
+	res := &ast.IfExpression{}
+	// parse condition
+	res.Condition = p.parseExpression(LOWEST) // TODO: grouping?
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	// parse branch1
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	res.If = p.parseBlockStatement()
+
+	// parse else branch
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+		// else {}
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+		res.Else = p.parseBlockStatement()
+	}
+
+	return res
+}
+
+// parseBlockStatement will eat the "}" inside.
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	block := &ast.BlockStatement{
+		Token:      p.curToken, // "{ "
+		Statements: []ast.Statement{},
+	}
+	p.nextToken()
+
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return block
+}
+
+func (p *Parser) parseGroupingExpression() ast.Expression {
+	//  (expression)
+
+	// read "("
+	p.nextToken()
+
+	grouped := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return grouped
 }
 
 func (p *Parser) parseBoolean() ast.Expression {
