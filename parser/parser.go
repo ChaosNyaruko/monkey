@@ -152,7 +152,7 @@ func (p *Parser) parseIfElseExpression() ast.Expression {
 	p.nextToken()
 	res := &ast.IfExpression{}
 	// parse condition
-	res.Condition = p.parseExpression(LOWEST) // TODO: grouping?
+	res.Condition = p.parseExpression(LOWEST)
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
@@ -346,13 +346,13 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	res := &ast.ReturnStatement{
 		Token:       p.curToken,
-		ReturnValue: nil, // TODO
+		ReturnValue: nil,
 	}
 	p.nextToken()
 
-	// TODO: we don't have Expression parsing yet, so just read until a semicolon.
-	for !p.curTokenIs(token.SEMICOLON) {
-		p.nextToken()
+	res.ReturnValue = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
 	}
 
 	return res
@@ -378,9 +378,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// TODO: skip for now, so just read it until a semicolon encountered.
-	for !p.curTokenIs(token.SEMICOLON) {
-		p.nextToken()
+	p.nextToken()
+
+	stmt.Value = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
 	}
 
 	return stmt
@@ -439,7 +441,6 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 
 	f.Body = p.parseBlockStatement()
 
-	// TODO(remove)
 	if !p.curTokenIs(token.RBRACE) {
 		panic("the { is not closed")
 	}

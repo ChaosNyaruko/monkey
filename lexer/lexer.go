@@ -5,9 +5,8 @@ import (
 )
 
 type Lexer struct {
-	input    string
-	position int // index of current char
-	// TODO: unicode and utf-8 support
+	input        string
+	position     int  // index of current char
 	ch           byte // the char being read (at position)
 	readPosition int  // index of the char after current char
 }
