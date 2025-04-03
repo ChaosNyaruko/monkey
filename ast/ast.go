@@ -85,6 +85,20 @@ func (i *IntegerLiteral) TokenLiteral() string {
 	return i.Token.Literal
 }
 
+type NullExpression struct {
+	Token token.Token
+	Value any
+}
+
+func (i *NullExpression) String() string {
+	return i.Token.Literal
+}
+
+func (i *NullExpression) expressionNode() {}
+func (i *NullExpression) TokenLiteral() string {
+	return i.Token.Literal
+}
+
 type BooleanExpression struct {
 	Token token.Token
 	Value bool

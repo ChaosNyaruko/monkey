@@ -11,6 +11,77 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestEvalReturn(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		hasError bool
+	}
+	tests := []testcase{
+		{"return 2;", 2, false},
+		{"return 2; 9", 2, false},
+		{"return 1+2*3; 9", 7, false},
+		{"9;return 1+2*3; 10", 7, false},
+		{"return 1", 0, true},
+		{`if (10>1) {return 10; 1}`, 10, false},
+		{`if (10>1) {
+            if (10>1) {
+               return 10;
+            }
+            return 1;
+          }`, 10, false},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if !assert.Equal(t, tc.hasError, err != nil, "err: %v", err) {
+			t.Fatalf("input %v, to object err: %v", tc.input, err)
+		}
+		if err == nil {
+			switch v := tc.expected.(type) {
+			case int:
+				testIntegerObject(t, tc.input, got, v)
+			case bool:
+				testBooleanObject(t, tc.input, got, v)
+			default:
+				testNull(t, tc.input, got)
+			}
+		}
+	}
+}
+
+func TestEvalIfElse(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		hasError bool
+	}
+	tests := []testcase{
+		{"if (true) {100}", 100, false},
+		{"if (false) {100}", NULL, false},
+		{"if (1) {100}", 100, false},
+		{"if (0) {100}", 100, false},
+		{"if (null) {100}", NULL, false},
+		{"if (1<2) {1} else {2}", 1, false},
+		{"if (1>2) {1} else {2}", 2, false},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if !assert.Equal(t, tc.hasError, err != nil, "err: %v", err) {
+			t.Fatalf("input %v, to object err: %v", tc.input, err)
+		}
+		if err == nil {
+			switch v := tc.expected.(type) {
+			case int:
+				testIntegerObject(t, tc.input, got, v)
+			case bool:
+				testBooleanObject(t, tc.input, got, v)
+			default:
+				testNull(t, tc.input, got)
+			}
+		}
+	}
+}
+
 func TestEvalBang(t *testing.T) {
 	type testcase struct {
 		input    string
@@ -99,7 +170,7 @@ func TestEvalInteger(t *testing.T) {
 			t.Fatalf("input to object err: %v", err)
 		}
 		if err == nil {
-			testIntegerObject(t, got, tc.expected)
+			testIntegerObject(t, tc.input, got, tc.expected)
 		}
 	}
 }
@@ -119,14 +190,18 @@ func stringToObject(input string) (object.Object, error) {
 
 }
 
-func testIntegerObject(t *testing.T, got object.Object, expected int) {
+func testIntegerObject(t *testing.T, input string, got object.Object, expected int) {
 	i, ok := got.(*object.Integer)
 	assert.True(t, ok, "expected an integer object, but got: %T", got)
-	assert.Equal(t, expected, i.Value)
+	assert.Equal(t, expected, i.Value, input)
 }
 
 func testBooleanObject(t *testing.T, input string, got object.Object, expected bool) {
 	i, ok := got.(*object.Boolean)
 	assert.True(t, ok, "expected a boolean object, but got: %T", got)
 	assert.Equal(t, expected, i.Value, input)
+}
+
+func testNull(t *testing.T, input string, got object.Object) {
+	assert.Equal(t, NULL, got, "input: %v, expected 'null', but got: %T", input, got)
 }

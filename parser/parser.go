@@ -61,6 +61,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixFnMap[token.MINUS] = p.parsePrefixExpression
 	p.prefixFnMap[token.TRUE] = p.parseBoolean
 	p.prefixFnMap[token.FALSE] = p.parseBoolean
+	p.prefixFnMap[token.NULL] = p.parseNull
 	p.prefixFnMap[token.LPAREN] = p.parseGroupingExpression
 	p.prefixFnMap[token.IF] = p.parseIfElseExpression
 	p.prefixFnMap[token.FUNCTION] = p.parseFunctionLiteral
@@ -205,6 +206,13 @@ func (p *Parser) parseGroupingExpression() ast.Expression {
 		return nil
 	}
 	return grouped
+}
+
+func (p *Parser) parseNull() ast.Expression {
+	res := &ast.NullExpression{
+		Token: p.curToken,
+	}
+	return res
 }
 
 func (p *Parser) parseBoolean() ast.Expression {

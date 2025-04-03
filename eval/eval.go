@@ -20,18 +20,55 @@ func boolToBoolean(value bool) *object.Boolean {
 	return FALSE
 }
 
+// isTrue convert others to real bools.
+// i.e. condition -> true/false
+// - integer -> false
+// - boolean -> true/false
+// - null -> false
+func isTrue(obj object.Object) bool {
+	switch obj {
+	case TRUE:
+		return true
+	case FALSE:
+		return false
+	case NULL:
+		return false
+	}
+	return true
+}
+
+func evalIfElse(node *ast.IfExpression) (object.Object, error) {
+	condition, err := Eval(node.Condition)
+	if err != nil {
+		return nil, err
+	}
+	if isTrue(condition) {
+		return Eval(node.If)
+	} else if node.Else != nil {
+		return Eval(node.Else)
+	}
+	// not hit if, but no else expression.
+	return NULL, nil
+}
+
 func Eval(node ast.Node) (object.Object, error) {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalStatements(node.Statements)
+		return evalProgram(node.Statements)
+	case *ast.BlockStatement:
+		return evalBlockStatements(node.Statements)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
+	case *ast.IfExpression:
+		return evalIfElse(node)
 	case *ast.IntegerLiteral:
 		return &object.Integer{
 			Value: node.Value,
 		}, nil
 	case *ast.BooleanExpression:
 		return boolToBoolean(node.Value), nil
+	case *ast.NullExpression:
+		return NULL, nil
 	case *ast.PrefixExpression:
 		rhs, err := Eval(node.Rhs)
 		if err != nil {
@@ -52,8 +89,12 @@ func Eval(node ast.Node) (object.Object, error) {
 		return res, err
 	case *ast.LetStatement:
 		return NULL, nil
-	case *ast.ReturnStatement: // TODO: should it have a "value" itself?
-		return NULL, nil
+	case *ast.ReturnStatement: // return's value if the expression after the "return".
+		// return 2;
+		rValue, err := Eval(node.ReturnValue) // rValue -> Integar
+		return &object.ReturnValue{
+			Value: rValue,
+		}, err
 	}
 	return nil, fmt.Errorf("unsupported object type: %T\n", node)
 }
@@ -77,21 +118,13 @@ func evalInfixInteger(op string, l, r *object.Integer) (object.Object, error) {
 			Value: l.Value / r.Value,
 		}, nil
 	case "==":
-		return &object.Boolean{
-			Value: l.Value == r.Value,
-		}, nil
+		return boolToBoolean(l.Value == r.Value), nil
 	case "!=":
-		return &object.Boolean{
-			Value: l.Value != r.Value,
-		}, nil
+		return boolToBoolean(l.Value != r.Value), nil
 	case "<":
-		return &object.Boolean{
-			Value: l.Value < r.Value,
-		}, nil
+		return boolToBoolean(l.Value < r.Value), nil
 	case ">":
-		return &object.Boolean{
-			Value: l.Value > r.Value,
-		}, nil
+		return boolToBoolean(l.Value > r.Value), nil
 	}
 	return nil, fmt.Errorf("unsupported infix operator for integers: %q\n", op)
 }
@@ -140,13 +173,45 @@ func evalPrefixExpression(op string, rhs object.Object) (object.Object, error) {
 	return nil, fmt.Errorf("unsupported prefix operator: %q\n", op)
 }
 
-func evalStatements(stmts []ast.Statement) (object.Object, error) {
+func evalProgram(stmts []ast.Statement) (object.Object, error) {
 	var res object.Object
 	var err error
 	for _, s := range stmts {
 		res, err = Eval(s)
 		if err != nil {
 			return nil, err
+		}
+		if r, ok := res.(*object.ReturnValue); ok {
+			return r.Value, err
+		}
+	}
+	return res, nil
+}
+
+func evalBlockStatements(stmts []ast.Statement) (object.Object, error) {
+	/*
+	   if (true) {
+	       if (true) {
+	           return 1;
+	       } // -> blocks = object.ReturnValue{Value: object.Integer{1}}
+	       return 2;
+	   }
+	*/
+
+	/*
+	   if (true) {
+	     blocks // object.ReturnValue
+	   } // -> blocks.Value -> object.Integer{1}
+	*/
+	var res object.Object
+	var err error
+	for _, s := range stmts {
+		res, err = Eval(s)
+		if err != nil {
+			return nil, err
+		}
+		if r, ok := res.(*object.ReturnValue); ok {
+			return r, err
 		}
 	}
 	return res, nil
