@@ -43,6 +43,7 @@ var precedences = map[token.TokenType]int{
 	token.GT:       LESSGREATER,
 	token.EQ:       EQUALS,
 	token.NOT_EQ:   EQUALS,
+	token.LPAREN:   CALL,
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -71,6 +72,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.infixFnMap[token.GT] = p.parseInfixExpression
 	p.infixFnMap[token.EQ] = p.parseInfixExpression
 	p.infixFnMap[token.NOT_EQ] = p.parseInfixExpression
+	p.infixFnMap[token.LPAREN] = p.parseInfixExpression
 	p.nextToken()
 	p.nextToken()
 	return p
@@ -90,17 +92,55 @@ func (p *Parser) curPrecedence() int {
 	return LOWEST
 }
 
+// parseFunctionCall is a special case for parseInfixExpression
+func (p *Parser) parseFunctionCall(f ast.Expression) ast.Expression {
+	fc := &ast.CallExpression{
+		Token:     p.curToken, // must be "("
+		Arguments: nil,
+		F:         f,
+	}
+	fc.Arguments = p.parseCallArguments()
+	return fc
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	// add(1, add(1+2), 3)
+	if p.peekTokenIs(token.RPAREN) {
+		// no params
+		p.nextToken()
+		return nil
+	}
+
+	p.nextToken() // move to the first Expression
+	arg := p.parseExpression(LOWEST)
+	args := []ast.Expression{arg}
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		arg := p.parseExpression(LOWEST)
+		args = append(args, arg)
+	}
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return args
+}
+
 func (p *Parser) parseInfixExpression(lhs ast.Expression) ast.Expression {
-	// 10 + 2
+	// -add.(10 + 2)
+	// lhs = add
+	if p.curTokenIs(token.LPAREN) { // function calling
+		return p.parseFunctionCall(lhs)
+	}
 	res := &ast.InfixExpression{
 		Token: p.curToken,
 		Lhs:   lhs,
 		Op:    p.curToken.Literal,
 		Rhs:   nil,
 	}
-	curPrecedence := p.curPrecedence() // +
+	curPrecedence := p.curPrecedence()
 	p.nextToken()
-	// 10 + 2
 	res.Rhs = p.parseExpression(curPrecedence)
 	return res
 }

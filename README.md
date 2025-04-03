@@ -149,11 +149,15 @@ let foo = if (x>y) {x} return {y};
 ### function literal
 fn <Params list> <Body>
 <Params list> (Identifier1, Identifier2, ...)
+```
 let f = fn(a, b) { return a + b;}
+```
 
 ### function calling
-TODO
+<Expression>(<Expression list>)
+```
 f(1,2)
+```
 
 
 
