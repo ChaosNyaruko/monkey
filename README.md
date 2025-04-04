@@ -182,9 +182,20 @@ struct {
 - let y = x + " " + "world"
 - let l = len("hello")
 ## Array
+- let myArray = [1, 2, 3, "hello", true, fn(a, b) {return a + b;}, [1,2,3]];
+- myArray[0]
+- myArray[6][0]
+- myArray[5]()
+- first(myArray) rest(myArray) last(myArray)
+- let myArray = push(myArray);
+- let myArray = map/reduce(myArray);
 ## HashMap
 
 # References
 - https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf
 - https://www.khoury.northeastern.edu/home/wand/eopl/
 - https://book.douban.com/subject/30348061/
+- https://go.dev/doc/pgo
+- https://www.modular.com/mojo
+- bison GLR LALR
+- creeps(the game)

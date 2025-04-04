@@ -14,6 +14,7 @@ const (
 	INTEGER_OBJ      = "INTEGER"
 	STRING_OBJ       = "STRING"
 	BOOLEAN_OBJ      = "BOOLEAN"
+	ARRAY_OBJ        = "ARRAY"
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	FUNCTION_OBJ     = "FUNCTION"
@@ -26,6 +27,7 @@ var _ Object = &Null{}
 var _ Object = &ReturnValue{}
 var _ Object = &Function{}
 var _ Object = &String{}
+var _ Object = &Array{}
 
 type Object interface {
 	Inspect() string
@@ -133,4 +135,24 @@ func (b *Builtin) Inspect() string {
 
 func (b *Builtin) Type() ObjectType {
 	return BUILTIN_OBJ
+}
+
+type Array struct {
+	Elements []Object
+}
+
+func (a *Array) Inspect() string {
+	var out bytes.Buffer
+	es := []string{}
+	for _, e := range a.Elements {
+		es = append(es, e.Inspect())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(es, ","))
+	out.WriteString("]")
+	return out.String()
+}
+
+func (a *Array) Type() ObjectType {
+	return ARRAY_OBJ
 }

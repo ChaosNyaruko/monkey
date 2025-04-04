@@ -14,6 +14,85 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestIndex(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		{`[1,2,3][2]`, 3, nil},
+		{`1[1]`, 0, fmt.Errorf("INTEGER is not indexable")},
+		{`[1,2,3][true]`, 0, fmt.Errorf("the index should be an integer")},
+		{`[1,2,3][3]`, 0, fmt.Errorf("out of bounds, len:3, visit:3")},
+		{`[1,2*3, 5+1][1]`, 6, nil},
+		{`let a = [1,2,3,4,[5,6]]; a[4][1]`, 6, nil},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "input: %v, actual: %v", tc.input, err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		case []int:
+			g := got.(*object.Array)
+			assert.Equal(t, len(v), len(g.Elements))
+			for i, o := range g.Elements {
+				testIntegerObject(t, o.Inspect(), o, v[i])
+			}
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
+func TestArray(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	tests := []testcase{
+		{`[1,2*3, 5+1]`, []int{1, 6, 6}, nil},
+	}
+	for _, tc := range tests {
+		got, err := stringToObject(tc.input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "input: %v, actual: %v", tc.input, err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		case []int:
+			g := got.(*object.Array)
+			assert.Equal(t, len(v), len(g.Elements))
+			for i, o := range g.Elements {
+				testIntegerObject(t, o.Inspect(), o, v[i])
+			}
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
 func TestBuiltin(t *testing.T) {
 	type testcase struct {
 		input    string

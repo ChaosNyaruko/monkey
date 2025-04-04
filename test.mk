@@ -15,3 +15,8 @@ let mul = fn(a,b) { return a * b;};
 let ternary = fn(a,b,c,f) { f(add(a,b), c) };
 ternary(1,2,10,mul);
 
+fn(a,b,c,f) { f(add(a,b), c) };
+
+let array = [1,2*3,3+4,4];
+let x = array[1] + array[1+2];
+x

@@ -11,6 +11,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestIndexExpression(t *testing.T) {
+	tests := []struct {
+		input string
+	}{
+		{"myArray[1+2]"},
+	}
+
+	for _, tc := range tests {
+		l := lexer.New(tc.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p, tc.input)
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		s, ok := stmt.Expression.(*ast.IndexExpression)
+		assert.True(t, ok, "should be an index expression, but got %T for input: %v", s, tc.input)
+		testIdentifier(t, s.Left, "myArray")
+		testInfixExpression(t, s.Index, 1, "+", 2)
+	}
+}
+
+func TestArrayLiteral(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedValue []int
+	}{
+		{"[1,2*3]", []int{1, 6}},
+	}
+
+	for _, tc := range tests {
+		l := lexer.New(tc.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p, tc.input)
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		s, ok := stmt.Expression.(*ast.ArrayLiteral)
+		assert.True(t, ok, "should be an array literal, but got %T for input: %v", stmt, tc.input)
+		assert.Equal(t, 2, len(s.Elements))
+		testIntegerLiteral(t, s.Elements[0], 1)
+		testInfixExpression(t, s.Elements[1], 2, "*", 3)
+	}
+}
+
 func TestStringLiteral(t *testing.T) {
 	tests := []struct {
 		input         string
@@ -24,7 +68,7 @@ func TestStringLiteral(t *testing.T) {
 		p := New(l)
 
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 		stmt := program.Statements[0].(*ast.ExpressionStatement)
 		s, ok := stmt.Expression.(*ast.StringLiteral)
 		assert.True(t, ok, "should be a string literal, but got %T for input: %v", stmt, tc.input)
@@ -75,7 +119,7 @@ func TestLetStatments(t *testing.T) {
 			assert.NotZero(t, p.Errors())
 			continue
 		} else {
-			checkParserErrors(t, p)
+			checkParserErrors(t, p, tc.input)
 		}
 		if fmt.Sprintf("%d", len(program.Statements)) != tc.name {
 			t.Fatalf("program.Statements doen't contain %s statements. got=%d", tc.name, len(program.Statements))
@@ -116,7 +160,7 @@ func testLetStatement(t *testing.T, s ast.Statement, name string, value any) boo
 
 }
 
-func checkParserErrors(t *testing.T, p *Parser) {
+func checkParserErrors(t *testing.T, p *Parser, input string) {
 	errs := p.Errors()
 	if len(errs) == 0 {
 		return
@@ -124,7 +168,7 @@ func checkParserErrors(t *testing.T, p *Parser) {
 	t.Errorf("parser has %d errors", len(errs))
 
 	for _, msg := range errs {
-		t.Errorf("parser error: %q", msg)
+		t.Errorf("parser error: %q, input: %v", msg, input)
 	}
 	t.FailNow()
 }
@@ -170,7 +214,7 @@ func TestReturnStatements(t *testing.T) {
 			assert.NotZero(t, p.Errors())
 			continue
 		} else {
-			checkParserErrors(t, p)
+			checkParserErrors(t, p, tc.input)
 		}
 
 		if fmt.Sprintf("%d", len(program.Statements)) != tc.name {
@@ -201,7 +245,7 @@ func TestIdentifierExpression(t *testing.T) {
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
-	checkParserErrors(t, p)
+	checkParserErrors(t, p, input)
 
 	assert.Equal(t, 1, len(program.Statements),
 		"program.Statements doesn't contain proper statements, %s", program)
@@ -219,7 +263,7 @@ func TestIntegerLiteral(t *testing.T) {
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
-	checkParserErrors(t, p)
+	checkParserErrors(t, p, input)
 
 	assert.Equal(t, 1, len(program.Statements),
 		"program.Statements doesn't contain proper statements, %s", program)
@@ -248,7 +292,7 @@ func TestPrefixExpressions(t *testing.T) {
 		l := lexer.New(x.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, x.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -335,7 +379,7 @@ func TestInfixExpressions(t *testing.T) {
 		l := lexer.New(x.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, x.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -377,12 +421,14 @@ func TestOpPrecedence(t *testing.T) {
 		{"(5+5)*2", "((5+5)*2)"},
 		{"-(5+5)", "(-(5+5))"},
 		{"!(true==true)", "(!(true==true))"},
+		{"a*[1,2,3,4][b*c] * d", "((a*([1,2,3,4][(b*c)]))*d)"},
+		{"add(a*b[2], b[1], 2*[1,2][0])", "add((a*(b[2])),(b[1]),(2*([1,2][0])))"},
 	}
 	for _, x := range cases {
 		l := lexer.New(x.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, x.input)
 		assert.Equal(t, x.expected, program.String())
 	}
 }
@@ -401,7 +447,7 @@ func TestBooleanExpression(t *testing.T) {
 		l := lexer.New(tc.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -425,7 +471,7 @@ func TestIfExpression(t *testing.T) {
 		l := lexer.New(tc.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -457,7 +503,7 @@ func TestIfElseExpression(t *testing.T) {
 		l := lexer.New(tc.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -496,7 +542,7 @@ func TestFunctionLiteral(t *testing.T) {
 		l := lexer.New(tc.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -531,7 +577,7 @@ func TestFunctionParameters(t *testing.T) {
 		l := lexer.New(tc.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)
@@ -564,7 +610,7 @@ func TestCallFunction(t *testing.T) {
 		l := lexer.New(tc.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, p, tc.input)
 
 		assert.Equal(t, 1, len(program.Statements),
 			"program.Statements doesn't contain proper statements, %s", program)

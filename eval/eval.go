@@ -61,6 +61,38 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 		return Eval(node.Expression, env)
 	case *ast.IfExpression:
 		return evalIfElse(node, env)
+	case *ast.ArrayLiteral:
+		a := &object.Array{
+			Elements: []object.Object{},
+		}
+		e, err := evalExpressions(node.Elements, env)
+		if err != nil {
+			return nil, err
+		}
+		a.Elements = e
+		return a, nil
+	case *ast.IndexExpression:
+		array, err := Eval(node.Left, env)
+		if err != nil {
+			return nil, err
+		}
+		int, err := Eval(node.Index, env)
+		if err != nil {
+			return nil, err
+		}
+		a, ok := array.(*object.Array)
+		if !ok {
+			return nil, fmt.Errorf("%v is not indexable", array.Type())
+		}
+		i, ok := int.(*object.Integer)
+		if !ok {
+			return nil, fmt.Errorf("the index should be an integer, but got %v", array.Type())
+		}
+		if i.Value >= len(a.Elements) || i.Value < 0 {
+			return nil, fmt.Errorf("index out of bounds, len:%d, visit:%d", len(a.Elements), i.Value)
+		}
+		return a.Elements[i.Value], nil
+
 	case *ast.StringLiteral:
 		return &object.String{
 			Value: node.Value,
@@ -121,7 +153,7 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 			return nil, err
 		}
 		// eval arguments
-		args, err := evalArguments(node.Arguments, env)
+		args, err := evalExpressions(node.Arguments, env)
 		return callFunction(f, args)
 	}
 	return nil, fmt.Errorf("unsupported object type: %T\n", node)
@@ -149,12 +181,12 @@ func callFunction(fn object.Object, args []object.Object) (object.Object, error)
 	return nil, fmt.Errorf("%v is not callable", fn.Inspect())
 }
 
-func evalArguments(args []ast.Expression, env *object.Environment) ([]object.Object, error) {
+func evalExpressions(args []ast.Expression, env *object.Environment) ([]object.Object, error) {
 	var res = make([]object.Object, 0, len(args))
 	for _, a := range args {
 		v, err := Eval(a, env)
 		if err != nil {
-			return nil, fmt.Errorf("passing arguments error: [%v]%v", a, err)
+			return nil, fmt.Errorf("passing exp error: [%v]%v", a, err)
 		}
 		res = append(res, v)
 	}
@@ -260,7 +292,7 @@ func evalPrefixExpression(op string, rhs object.Object) (object.Object, error) {
 	} else if op == "-" {
 		value, ok := rhs.(*object.Integer)
 		if !ok {
-			return nil, fmt.Errorf("expected integer after '-', but got %T\n", rhs)
+			return nil, fmt.Errorf("expected integer after '-', but got %v\n", rhs.Type())
 		}
 		return &object.Integer{
 			Value: -value.Value,
