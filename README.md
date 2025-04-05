@@ -192,6 +192,9 @@ struct {
 - rest(myArray) - a = (1 2 3) scheme: car(a) => 1 cdr(a) => (2 3)
 - let myArray = push(myArray);
 - let myArray = map/reduce(myArray);
+
+We can iterate now! Though we don't have a "loop" syntax.
+
 ## HashMap
 
 # References
@@ -202,3 +205,5 @@ struct {
 - https://www.modular.com/mojo
 - bison GLR LALR
 - creeps(the game)
+
+> 函数式语言就是自递归加数组模式匹配

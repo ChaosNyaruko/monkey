@@ -1,4 +1,5 @@
 1+2
+[]
 let a = 1000;
 let b = 2000;
 a + b;
@@ -36,7 +37,43 @@ rest(rest(rest(rest(rest(int)))))
 
 let empty = [1];
 let one = push(empty, 2);
+
 empty
 one
 
+let map = fn(arr, f) {
+	let iter = fn(res, arr) {
+		if (len(arr) == 0) {
+			return res;
+		}
+		return iter(push(res, f(first(arr))), rest(arr));
+	};
+
+	iter([], arr)
+};
+
+let a = [1,2,3,4,5];
+let double = fn(x) { 2 * x };
+map(a, double)
+
+let reduce = fn(f, arr, initial) {
+	let iter = fn(prev, arr) {
+		if (len(arr) == 0) {
+			return prev;
+		}
+		return iter(f(prev, first(arr)), rest(arr));
+	};
+
+	iter(initial, arr)
+};
+
+let a = [1,2,3,4,5];
+let add = fn(x, y) {  x + y };
+reduce(add, a, 10)
+
+let sum = fn(arr) {
+	reduce(add, arr, 0)
+};
+sum([1,2,3,4,5])
+sum([145,46269,4524])
 []

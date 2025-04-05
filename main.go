@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -37,34 +36,24 @@ func main() {
 		repl.Start(os.Stdin, os.Stdout)
 		return
 	}
-	f, err := os.Open(*filename)
+	b, err := os.ReadFile(*filename)
 	if err != nil {
 		log.Fatalf("open file err: %v", err)
 	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
 	env := object.NewEnvironment(nil)
-	for scanner.Scan() {
-		l := lexer.New(scanner.Text())
-		p := parser.New(l)
-		program := p.ParseProgram()
-		if err = p.Error(); err != nil {
-			io.WriteString(os.Stderr, err.Error())
-			continue
-		}
-		ob, err := eval.Eval(program, env)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "eval err: %v", err)
-			break
-		}
-		if ob == nil { // EOF reached
-			continue
-		}
-		fmt.Fprintf(os.Stdout, "%s\n", ob.Inspect())
+	srcCode := string(b)
+	l := lexer.New(srcCode)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if err = p.Error(); err != nil {
+		io.WriteString(os.Stderr, err.Error())
 	}
-	if err = scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "reading file error: %v\n", err)
+	ob, err := eval.Eval(program, env)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "eval err: %v", err)
+
 	}
+	fmt.Fprintf(os.Stdout, "%s\n", ob.Inspect())
 	// error in interpreter
 	if err != nil {
 		os.Exit(1)
