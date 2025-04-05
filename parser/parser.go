@@ -453,10 +453,10 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 }
 
 func (p *Parser) parseExpressionList(close token.TokenType) []ast.Expression {
-	if p.peekTokenIs(token.RPAREN) {
+	if p.peekTokenIs(close) {
 		// no params
 		p.nextToken()
-		return nil
+		return []ast.Expression{}
 	}
 
 	p.nextToken() // move to the first Expression

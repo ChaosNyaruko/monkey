@@ -17,6 +17,26 @@ ternary(1,2,10,mul);
 
 fn(a,b,c,f) { f(add(a,b), c) };
 
-let array = [1,2*3,3+4,4];
+let array = [1,2*3,3+4,4, fn(a, b) { return a + b;}];
 let x = array[1] + array[1+2];
 x
+let f = array[4];
+f(10,2)
+
+len(array)
+
+first(array)
+last(array)
+rest(array)
+rest(rest(array))
+len(rest(array))
+
+let int = [1,2,3,4];
+rest(rest(rest(rest(rest(int)))))
+
+let empty = [1];
+let one = push(empty, 2);
+empty
+one
+
+[]

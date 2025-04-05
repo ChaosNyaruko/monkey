@@ -34,10 +34,11 @@ func TestIndexExpression(t *testing.T) {
 
 func TestArrayLiteral(t *testing.T) {
 	tests := []struct {
-		input         string
-		expectedValue []int
+		input    string
+		expected []int
 	}{
-		{"[1,2*3]", []int{1, 6}},
+		{"[]", []int{}},
+		{"[1,6]", []int{1, 6}},
 	}
 
 	for _, tc := range tests {
@@ -49,9 +50,12 @@ func TestArrayLiteral(t *testing.T) {
 		stmt := program.Statements[0].(*ast.ExpressionStatement)
 		s, ok := stmt.Expression.(*ast.ArrayLiteral)
 		assert.True(t, ok, "should be an array literal, but got %T for input: %v", stmt, tc.input)
-		assert.Equal(t, 2, len(s.Elements))
-		testIntegerLiteral(t, s.Elements[0], 1)
-		testInfixExpression(t, s.Elements[1], 2, "*", 3)
+		assert.Equal(t, len(tc.expected), len(s.Elements))
+		for i, e := range s.Elements {
+			testExpression(t, e, tc.expected[i])
+		}
+		// testIntegerLiteral(t, s.Elements[0], 1)
+		// testInfixExpression(t, s.Elements[1], 2, "*", 3)
 	}
 }
 

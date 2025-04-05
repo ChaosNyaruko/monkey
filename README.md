@@ -1,8 +1,8 @@
 Learning interpreters by project.
 
 Refs:
-- https://interpreterbook.com/
-- https://craftinginterpreters.com/
+- [Write an Interpreter in Go](https://interpreterbook.com/)
+- [The lox language](https://craftinginterpreters.com/)
 
 # Parser
 - AST (eBNF --> (yacc, bison, antlr) -> AST)
@@ -186,7 +186,10 @@ struct {
 - myArray[0]
 - myArray[6][0]
 - myArray[5]()
-- first(myArray) rest(myArray) last(myArray)
+- len(myArray)
+- first(myArray) 
+- last(myArray)
+- rest(myArray) - a = (1 2 3) scheme: car(a) => 1 cdr(a) => (2 3)
 - let myArray = push(myArray);
 - let myArray = map/reduce(myArray);
 ## HashMap
