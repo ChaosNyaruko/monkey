@@ -205,5 +205,8 @@ We can iterate now! Though we don't have a "loop" syntax.
 - https://www.modular.com/mojo
 - bison GLR LALR
 - creeps(the game)
+- PTC
+- RAII (resource allocation is initialization)
+- IIFE(immediately invoked function expression)
 
 > 函数式语言就是自递归加数组模式匹配

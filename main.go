@@ -48,12 +48,11 @@ func main() {
 	if err = p.Error(); err != nil {
 		io.WriteString(os.Stderr, err.Error())
 	}
-	ob, err := eval.Eval(program, env)
+	_, err = eval.Eval(program, env)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "eval err: %v", err)
 
 	}
-	fmt.Fprintf(os.Stdout, "%s\n", ob.Inspect())
 	// error in interpreter
 	if err != nil {
 		os.Exit(1)

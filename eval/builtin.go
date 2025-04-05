@@ -12,6 +12,7 @@ var builtins = map[string]*object.Builtin{
 	"last":  {Name: "last", Fn: Last},
 	"rest":  {Name: "rest", Fn: Rest},
 	"push":  {Name: "push", Fn: Push},
+	"print": {Name: "print", Fn: Print},
 }
 
 func Len(args ...object.Object) (object.Object, error) {
@@ -100,4 +101,11 @@ func Push(args ...object.Object) (object.Object, error) {
 	default:
 		return nil, fmt.Errorf("not supported on %v\n", a.Type())
 	}
+}
+
+func Print(args ...object.Object) (object.Object, error) {
+	for _, a := range args {
+		fmt.Println(a.Inspect())
+	}
+	return NULL, nil
 }
