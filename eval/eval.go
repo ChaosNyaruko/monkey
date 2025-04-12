@@ -71,28 +71,10 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 		}
 		a.Elements = e
 		return a, nil
+	case *ast.HashLiteral:
+		return evalHashLiteral(node, env)
 	case *ast.IndexExpression:
-		array, err := Eval(node.Left, env)
-		if err != nil {
-			return nil, err
-		}
-		int, err := Eval(node.Index, env)
-		if err != nil {
-			return nil, err
-		}
-		a, ok := array.(*object.Array)
-		if !ok {
-			return nil, fmt.Errorf("%v is not indexable", array.Type())
-		}
-		i, ok := int.(*object.Integer)
-		if !ok {
-			return nil, fmt.Errorf("the index should be an integer, but got %v", array.Type())
-		}
-		if i.Value >= len(a.Elements) || i.Value < 0 {
-			return nil, fmt.Errorf("index out of bounds, len:%d, visit:%d", len(a.Elements), i.Value)
-		}
-		return a.Elements[i.Value], nil
-
+		return evalIndexExpression(node, env)
 	case *ast.StringLiteral:
 		return &object.String{
 			Value: node.Value,
@@ -344,4 +326,70 @@ func evalBlockStatements(stmts []ast.Statement, env *object.Environment) (object
 		}
 	}
 	return res, nil
+}
+
+func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) (object.Object, error) {
+	pairs := make(map[object.HashKey]object.HashPair)
+
+	var err error
+	for key, value := range node.Pairs {
+		var k, v object.Object
+		if k, err = Eval(key, env); err != nil {
+			return nil, fmt.Errorf("eval key: %s err: %v\n", key.String(), err)
+		}
+		hk, ok := k.(object.Hashable)
+		if !ok {
+			return nil, fmt.Errorf("%v is not hashable\n", k.Type())
+		}
+		if v, err = Eval(value, env); err != nil {
+			return nil, fmt.Errorf("eval key: %s err: %v\n", key.String(), err)
+		}
+		pairs[hk.HashKey()] = object.HashPair{
+			Key:   k,
+			Value: v,
+		}
+	}
+	return &object.Hash{
+		Pairs: pairs,
+	}, nil
+}
+
+func evalIndexExpression(node *ast.IndexExpression, env *object.Environment) (object.Object, error) {
+	left, err := Eval(node.Left, env)
+	if err != nil {
+		return nil, err
+	}
+	index, err := Eval(node.Index, env)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.HASH_OBJ:
+		return evalHashIndexExpression(left, index)
+	}
+	return nil, fmt.Errorf("index %s on %s is not supported", index.Type(), left.Type())
+}
+
+func evalArrayIndexExpression(array, int object.Object) (object.Object, error) {
+	a := array.(*object.Array)
+	i := int.(*object.Integer)
+	if i.Value >= len(a.Elements) || i.Value < 0 {
+		return nil, fmt.Errorf("index out of bounds, len:%d, visit:%d", len(a.Elements), i.Value)
+	}
+	return a.Elements[i.Value], nil
+}
+
+func evalHashIndexExpression(hm, key object.Object) (object.Object, error) {
+	a := hm.(*object.Hash)
+	i, ok := key.(object.Hashable)
+	if !ok {
+		return nil, fmt.Errorf("%v is not hashable", key.Type())
+	}
+	res, ok := a.Pairs[i.HashKey()]
+	if !ok {
+		return NULL, nil
+	}
+	return res.Value, nil
 }

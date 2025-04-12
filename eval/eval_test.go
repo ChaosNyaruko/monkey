@@ -14,6 +14,136 @@ import (
 	"github.com/ChaosNyaruko/monkey/parser"
 )
 
+func TestHashIndex(t *testing.T) {
+	type testcase struct {
+		input    string
+		expected any
+		err      error
+	}
+	for _, tc := range []testcase{
+		{
+			input: `let key = "john";
+			{key: "john smith", "one": 4-3, true: "TRUE!!!", false: 100000, 2 + 5: "7"}["one"]
+			`,
+			expected: 1,
+			err:      nil,
+		},
+		{
+			input: `let key = "john";
+			{key: "john smith", "one": 4-3, true: "TRUE!!!", false: 100000, 2 + 5: "7"}[key]
+			`,
+			expected: "john smith",
+			err:      nil,
+		},
+		{
+			input:    `{fn() {return 1;} : 1}`,
+			expected: NULL,
+			err:      fmt.Errorf("not hashable"),
+		},
+		{
+			input:    `{}[fn() {1 + 2}]`,
+			expected: NULL,
+			err:      fmt.Errorf("not hashable"),
+		},
+		{
+			input:    `{}[2]`,
+			expected: NULL,
+			err:      nil,
+		},
+	} {
+		input := tc.input
+		got, err := stringToObject(input)
+		if err != nil {
+			assert.NotNil(t, tc.err, "got err: %v, input: %v", err, tc.input)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+		switch v := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, tc.input, got, v)
+		case bool:
+			testBooleanObject(t, tc.input, got, v)
+		case string:
+			assert.Equal(t, tc.expected, got.Inspect(), "input: %v", tc.input)
+		case []int:
+			g := got.(*object.Array)
+			assert.Equal(t, len(v), len(g.Elements))
+			for i, o := range g.Elements {
+				testIntegerObject(t, o.Inspect(), o, v[i])
+			}
+		default:
+			testNull(t, tc.input, got)
+		}
+	}
+}
+
+func TestHashLiteral(t *testing.T) {
+	type testcase struct {
+		input string
+		err   error
+	}
+	for _, tc := range []testcase{
+		{
+			input: `let key = "john";
+			{key: "john smith", "one": 4-3, true: "TRUE!!!", false: 100000, 2 + 5: "7"}
+			`,
+			err: nil,
+		},
+		{
+			input: `{fn() {return 1;} : 1}`,
+			err:   fmt.Errorf("not hashable"),
+		},
+	} {
+		input := tc.input
+		got, err := stringToObject(input)
+		if err != nil {
+			assert.NotNil(t, tc.err)
+			require.Conditionf(t, func() bool { return strings.Contains(err.Error(), tc.err.Error()) },
+				"input: %v, expected err: %v, but got %v", tc.input, tc.err, err)
+			continue
+		}
+		h, ok := got.(*object.Hash)
+		assert.True(t, ok, "expected hash object, but got: %v", got.Type())
+
+		expected := map[object.HashKey]object.Object{
+			(&object.String{
+				Value: "john",
+			}).HashKey(): &object.String{
+				Value: "john smith",
+			},
+			(&object.String{
+				Value: "one",
+			}).HashKey(): &object.Integer{
+				Value: 1,
+			},
+			(&object.Boolean{
+				Value: true,
+			}).HashKey(): &object.String{
+				Value: "TRUE!!!",
+			},
+			(&object.Boolean{
+				Value: false,
+			}).HashKey(): &object.Integer{
+				Value: 100000,
+			},
+			(&object.Integer{
+				Value: 7,
+			}).HashKey(): &object.String{
+				Value: "7",
+			},
+		}
+		assert.Equal(t, len(expected), len(h.Pairs))
+		for k, v := range expected {
+			vgot, ok := h.Pairs[k]
+			assert.True(t, ok, "%v/%v not found in got", k, v.Inspect())
+			vg := vgot.Value
+			assert.Equal(t, v.Type(), vg.Type())
+			assert.Equal(t, v.Inspect(), vg.Inspect())
+		}
+	}
+}
+
 func TestIndex(t *testing.T) {
 	type testcase struct {
 		input    string
@@ -22,8 +152,8 @@ func TestIndex(t *testing.T) {
 	}
 	tests := []testcase{
 		{`[1,2,3][2]`, 3, nil},
-		{`1[1]`, 0, fmt.Errorf("INTEGER is not indexable")},
-		{`[1,2,3][true]`, 0, fmt.Errorf("the index should be an integer")},
+		{`1[1]`, 0, fmt.Errorf("index INTEGER on INTEGER is not supported")},
+		{`[1,2,3][true]`, 0, fmt.Errorf("index BOOLEAN on ARRAY is not supported")},
 		{`[1,2,3][3]`, 0, fmt.Errorf("out of bounds, len:3, visit:3")},
 		{`[1,2*3, 5+1][1]`, 6, nil},
 		{`let a = [1,2,3,4,[5,6]]; a[4][1]`, 6, nil},

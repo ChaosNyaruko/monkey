@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"strings"
 
 	"github.com/ChaosNyaruko/monkey/ast"
@@ -10,9 +11,16 @@ import (
 
 type ObjectType string
 
+type Hashable interface {
+	Object
+	HashKey() HashKey
+	// Equals(Object) bool TODO: deal with hash conflicts.
+}
+
 const (
 	INTEGER_OBJ      = "INTEGER"
 	STRING_OBJ       = "STRING"
+	HASH_OBJ         = "HASH"
 	BOOLEAN_OBJ      = "BOOLEAN"
 	ARRAY_OBJ        = "ARRAY"
 	NULL_OBJ         = "NULL"
@@ -20,6 +28,10 @@ const (
 	FUNCTION_OBJ     = "FUNCTION"
 	BUILTIN_OBJ      = "BUILTIN"
 )
+
+var _ Hashable = &Integer{}
+var _ Hashable = &Boolean{}
+var _ Hashable = &Integer{}
 
 var _ Object = &Integer{}
 var _ Object = &Boolean{}
@@ -36,6 +48,13 @@ type Object interface {
 
 type Integer struct {
 	Value int
+}
+
+func (i *Integer) HashKey() HashKey {
+	return HashKey{
+		Type: i.Type(),
+		Key:  uint64(i.Value),
+	}
 }
 
 func (i *Integer) Inspect() string {
@@ -60,6 +79,17 @@ func (i *ReturnValue) Type() ObjectType {
 
 type Boolean struct {
 	Value bool
+}
+
+func (b *Boolean) HashKey() HashKey {
+	var key uint64 = 0
+	if b.Value {
+		key = 1
+	}
+	return HashKey{
+		Type: b.Type(),
+		Key:  key,
+	}
 }
 
 func (b *Boolean) Inspect() string {
@@ -114,6 +144,18 @@ type String struct {
 	Value string
 }
 
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+	_, err := h.Write([]byte(s.Value))
+	if err != nil {
+		panic(err)
+	}
+	return HashKey{
+		Type: s.Type(),
+		Key:  h.Sum64(),
+	}
+}
+
 func (s *String) Inspect() string {
 	return s.Value
 }
@@ -155,4 +197,36 @@ func (a *Array) Inspect() string {
 
 func (a *Array) Type() ObjectType {
 	return ARRAY_OBJ
+}
+
+type HashKey struct {
+	Type ObjectType
+	Key  uint64
+}
+
+type HashPair struct {
+	Key   Object
+	Value Object
+}
+
+type Hash struct {
+	// no map[Object]Object -> {"key": "xx", "key": yy}
+	// no map[string]Object -> {2: "a", "2": "b"}
+	Pairs map[HashKey]HashPair
+}
+
+func (h *Hash) Inspect() string {
+	var out bytes.Buffer
+	kvs := []string{}
+	for _, v := range h.Pairs {
+		kvs = append(kvs, fmt.Sprintf("%s:%s", v.Key.Inspect(), v.Value.Inspect()))
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(kvs, ","))
+	out.WriteString("}")
+	return out.String()
+}
+
+func (h *Hash) Type() ObjectType {
+	return HASH_OBJ
 }

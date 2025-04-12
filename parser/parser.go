@@ -69,6 +69,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixFnMap[token.FUNCTION] = p.parseFunctionLiteral
 	p.prefixFnMap[token.STRING] = p.parseStringLiteral
 	p.prefixFnMap[token.LBRACKET] = p.parseArrayLiteral
+	p.prefixFnMap[token.LBRACE] = p.parseHashLiteral
 	p.infixFnMap[token.PLUS] = p.parseInfixExpression
 	p.infixFnMap[token.MINUS] = p.parseInfixExpression
 	p.infixFnMap[token.ASTERISK] = p.parseInfixExpression
@@ -441,6 +442,40 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return ids
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	h := &ast.HashLiteral{
+		Token: p.curToken,
+		Pairs: make(map[ast.Expression]ast.Expression),
+	}
+	// parse key-value pairs
+	for !p.peekTokenIs(token.RBRACE) {
+		p.nextToken() // eat "{" or ","
+		key := p.parseExpression(LOWEST)
+		if !p.expectPeek(token.COLON) {
+			p.errors = append(p.errors, "no ':' after a key in hashmap")
+			return nil
+		}
+		p.nextToken() // eat ":"
+		if value := p.parseExpression(LOWEST); value != nil {
+			h.Pairs[key] = value
+		} else {
+			p.errors = append(p.errors, fmt.Sprintf("parse value for '%q' error", key.String()))
+			return nil
+		}
+
+		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+			p.errors = append(p.errors, fmt.Sprintf("expected ',' or '}', got: %q", p.peekToken.Literal))
+			return nil
+		}
+	}
+	// confirm and eat "}"
+	if !p.expectPeek(token.RBRACE) {
+		p.errors = append(p.errors, fmt.Sprintf("expected '}', got: %q", p.peekToken.Literal))
+		return nil
+	}
+	return h
 }
 
 func (p *Parser) parseArrayLiteral() ast.Expression {

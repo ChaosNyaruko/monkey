@@ -11,6 +11,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHashLiteral(t *testing.T) {
+	tests := []struct {
+		input string
+		empty bool // expected
+	}{
+		{`{"foo": "bar", 2: true, "2": false, true: "TRUE"}`, false},
+		{`{}`, true},
+	}
+
+	for _, tc := range tests {
+		l := lexer.New(tc.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p, tc.input)
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		s, ok := stmt.Expression.(*ast.HashLiteral)
+		assert.True(t, ok, "should be a hash literal expression, but got %T for input: %v", s, tc.input)
+		if tc.empty {
+			assert.Equal(t, 0, len(s.Pairs))
+			return
+		}
+		for k, v := range s.Pairs {
+			switch kv := k.(type) {
+			case *ast.StringLiteral:
+				if kv.Value == "foo" {
+					assert.Equal(t, "bar", v.(*ast.StringLiteral).Value)
+				} else if kv.Value == "2" {
+					assert.Equal(t, false, v.(*ast.BooleanExpression).Value)
+				}
+			case *ast.IntegerLiteral:
+				if kv.Value == 2 {
+					assert.Equal(t, true, v.(*ast.BooleanExpression).Value)
+				}
+			case *ast.BooleanExpression:
+				assert.True(t, kv.Value)
+				assert.Equal(t, "TRUE", v.(*ast.StringLiteral).Value)
+			}
+		}
+	}
+}
+
 func TestIndexExpression(t *testing.T) {
 	tests := []struct {
 		input string

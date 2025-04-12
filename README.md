@@ -196,6 +196,17 @@ struct {
 We can iterate now! Though we don't have a "loop" syntax.
 
 ## HashMap
+- let john = {"name": "john", "age": 20, "favourite": "Marvel MCU"};
+- let age = john["age"]; -> 20
+- let name = john["name"]; -> "john"
+- let invalid = john["invalid"]; -> null
+- let invalid = john["invalid" + " other"]; -> null
+- let key = "name";
+- let dict = {key: "john"};
+- dict[key]
+- Key(object type): String/Boolean/Integer
+
+{<Expression>: <Expression> [, <Expression>:<Expression>].*}
 
 # References
 - https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf

@@ -79,3 +79,15 @@ sum([145,46269,4524])
 let a = [1,2,3,4,5];
 print(a);
 print(rest(a));
+print("hello " + "world");
+
+{}
+let key = "john";
+let hashmap ={key: "john smith", "one": 4-3, true: "TRUE!!!", false: 100000, 2 + 5: "7"};
+print(hashmap);
+
+
+print(hashmap[key]);
+print(hashmap["nonexist"]);
+
+{fn() {1 + 2}: 1}
