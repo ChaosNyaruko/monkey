@@ -220,4 +220,21 @@ We can iterate now! Though we don't have a "loop" syntax.
 - RAII (resource allocation is initialization)
 - IIFE(immediately invoked function expression)
 
+# Macro
+similar to Exlixir
+
+## quote / unquote 
+- quote(foo) -> QUOTE(foo)
+- quote(1+2) -> QUOTE((1+2))
+- quote(foo + 1 + bar) -> QUOTE(((foo + 1) + bar))
+- quote(foo + unquote(1 + 4)) -> QUOTE((foo + 5))
+
+## define and use marco
+- let reverse_sub = macro(a, b) {quote(unquote(b) - unquote(a))}  
+  - macro(1+2, 3+4) --> (7-3) --> 4
+- let first_valid = macro(a, b) {a}  
+- let first_valid = fn   (a, b) {a}  
+  - macro(print("first"), print("second") --> first
+
+
 > 函数式语言就是自递归加数组模式匹配

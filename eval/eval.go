@@ -5,6 +5,7 @@ import (
 
 	"github.com/ChaosNyaruko/monkey/ast"
 	"github.com/ChaosNyaruko/monkey/object"
+	"github.com/ChaosNyaruko/monkey/token"
 )
 
 var (
@@ -130,12 +131,27 @@ func Eval(node ast.Node, env *object.Environment) (object.Object, error) {
 			Env:        env,
 		}, nil
 	case *ast.CallExpression:
+		if node.F.TokenLiteral() == "eval" {
+			if len(node.Arguments) != 1 {
+				return nil, fmt.Errorf("eval should and only should have one argument\n")
+			}
+			return evalLiteral(node.Arguments[0], env)
+		}
+		if node.F.TokenLiteral() == "quote" {
+			if len(node.Arguments) != 1 {
+				return nil, fmt.Errorf("quote should and only should have one argument\n")
+			}
+			return quote(node.Arguments[0], env)
+		}
 		f, err := Eval(node.F, env)
 		if err != nil {
 			return nil, err
 		}
 		// eval arguments
 		args, err := evalExpressions(node.Arguments, env)
+		if err != nil {
+			return nil, err
+		}
 		return callFunction(f, args)
 	}
 	return nil, fmt.Errorf("unsupported object type: %T\n", node)
@@ -392,4 +408,88 @@ func evalHashIndexExpression(hm, key object.Object) (object.Object, error) {
 		return NULL, nil
 	}
 	return res.Value, nil
+}
+
+func quote(node ast.Node, env *object.Environment) (object.Object, error) {
+	node, err := evalUnquote(node, env)
+	return &object.Quote{
+		Node: node,
+	}, err
+}
+
+func evalUnquote(quoted ast.Node, env *object.Environment) (ast.Node, error) {
+	// (quote 1 2 (+ 3 4) unquote(2+3)) -> (quote 1 2 (+3 4) 5)
+	f := func(node ast.Node) ast.Node {
+		// node is unquote or not
+		if !isUnquote(node) {
+			return node
+		}
+
+		call := node.(*ast.CallExpression)
+		n, err := evalNewAstNode(call.Arguments[0], env)
+		if err != nil {
+			return nil
+		}
+		return n
+	}
+	// TODO: better error process during modifying
+	n := ast.Modify(quoted, f)
+	if n == nil {
+		return nil, fmt.Errorf("evalUnquote in quote err: %v", quoted.String())
+	}
+	return n, nil
+}
+
+func isUnquote(node ast.Node) bool {
+	call, ok := node.(*ast.CallExpression)
+	if !ok {
+		return false
+	}
+	return call.F.TokenLiteral() == "unquote" && len(call.Arguments) == 1
+}
+
+func evalNewAstNode(node ast.Node, env *object.Environment) (ast.Node, error) {
+	unquotedObj, err := Eval(node, env)
+	if err != nil {
+		return nil, err
+	}
+	switch obj := (unquotedObj).(type) {
+	case *object.Integer:
+		return &ast.IntegerLiteral{
+			Token: token.Token{
+				Type:    token.INT,
+				Literal: fmt.Sprintf("%d", obj.Value),
+			},
+			Value: obj.Value,
+		}, nil
+	case *object.Quote:
+		return obj.Node, nil
+
+	case *object.Boolean:
+		t := token.Token{
+			Type:    token.FALSE,
+			Literal: "false",
+		}
+		if obj.Value {
+			t.Type = token.TRUE
+			t.Literal = "true"
+		}
+		return &ast.BooleanExpression{
+			Token: t,
+			Value: obj.Value,
+		}, nil
+	}
+	return nil, fmt.Errorf("TODO: cannot convert %s into ast", unquotedObj.Inspect())
+}
+
+func evalLiteral(node ast.Node, env *object.Environment) (object.Object, error) {
+	q, err := Eval(node, env)
+	if err != nil {
+		return nil, err
+	}
+	e, ok := q.(*object.Quote)
+	if !ok {
+		return nil, fmt.Errorf("the 'eval' should be applied to a QUOTE, but got: %s", e.Inspect())
+	}
+	return Eval(e.Node, env)
 }

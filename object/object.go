@@ -27,6 +27,7 @@ const (
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	FUNCTION_OBJ     = "FUNCTION"
 	BUILTIN_OBJ      = "BUILTIN"
+	QUOTE_OBJ        = "QUOTE"
 )
 
 var _ Hashable = &Integer{}
@@ -40,6 +41,7 @@ var _ Object = &ReturnValue{}
 var _ Object = &Function{}
 var _ Object = &String{}
 var _ Object = &Array{}
+var _ Object = &Quote{}
 
 type Object interface {
 	Inspect() string
@@ -229,4 +231,16 @@ func (h *Hash) Inspect() string {
 
 func (h *Hash) Type() ObjectType {
 	return HASH_OBJ
+}
+
+type Quote struct {
+	Node ast.Node
+}
+
+func (q *Quote) Inspect() string {
+	return "QUOTE(" + q.Node.String() + ")"
+}
+
+func (a *Quote) Type() ObjectType {
+	return QUOTE_OBJ
 }

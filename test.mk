@@ -90,4 +90,31 @@ print(hashmap);
 print(hashmap[key]);
 print(hashmap["nonexist"]);
 
-{fn() {1 + 2}: 1}
+
+print(quote(foo))
+quote(1+2)
+quote(foo + 1 + bar)
+
+let foo = 10;
+print(quote(foo + unquote(1 + foo)))
+
+print(quote(foo + unquote(false == (!true))))
+
+let x = quote(foo + unquote(quote(1+bar)));
+
+print("x:",x);
+
+print("bar not defined");
+print(eval(x));
+
+print("let's define bar=12");
+let bar = 12;
+
+let y = eval(x);
+print("y:", y);
+
+print("let's modify foo=12");
+let foo = 12;
+print("foo modified, eval result: ", eval(x));
+
+

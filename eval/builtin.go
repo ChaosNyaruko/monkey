@@ -104,8 +104,13 @@ func Push(args ...object.Object) (object.Object, error) {
 }
 
 func Print(args ...object.Object) (object.Object, error) {
-	for _, a := range args {
-		fmt.Println(a.Inspect())
+	for i, a := range args {
+		fmt.Print(a.Inspect())
+		if i != len(args)-1 {
+			fmt.Print(" ")
+		} else {
+			fmt.Println()
+		}
 	}
 	return NULL, nil
 }
