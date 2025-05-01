@@ -3,6 +3,7 @@ package ast
 type Modifer func(Node) Node
 
 func Modify(node Node, f Modifer) Node {
+	// log.Printf("modify %v/%T", node, node)
 	switch node := node.(type) {
 	case *Program:
 		for i, s := range node.Statements {
@@ -25,6 +26,10 @@ func Modify(node Node, f Modifer) Node {
 		node.Index = Modify(node.Index, f).(Expression)
 		return node
 	case *BlockStatement:
+		// in if statement, without a else clause, it can be a nil
+		if node == nil {
+			return node
+		}
 		for i, s := range node.Statements {
 			node.Statements[i] = Modify(s, f).(Statement)
 		}
