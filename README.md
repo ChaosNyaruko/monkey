@@ -4,6 +4,28 @@ Refs:
 - [Write an Interpreter in Go](https://interpreterbook.com/)
 - [The lox language](https://craftinginterpreters.com/)
 
+# Installation
+```console
+$ go install github.com/ChaosNyaruko/monkey@master
+```
+
+# Examples
+## Interpret a file
+```console
+$ monkey -f test.mk
+```
+
+## Interactive interpreter
+```console
+$ monkey 
+```
+
+# Syntax
+See [test.mk](./test.mk).
+
+---
+The following are the main concepts involved in the [book](https://interpreterbook.com/) when I was learning to build my own monkey.
+
 # Parser
 - AST (eBNF --> (yacc, bison, antlr) -> AST)
 - Write by hand, top-down.
