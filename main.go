@@ -48,10 +48,19 @@ func main() {
 	if err = p.Error(); err != nil {
 		io.WriteString(os.Stderr, err.Error())
 	}
+
+	// let reverse_sub = macro(a, b) {quote(unquote(b) - unquote(a))}
+	if err := eval.DefineMacros(program, env); err != nil {
+		fmt.Fprintf(os.Stderr, "define macros err: %v", err)
+	}
+
+	//  reverse_sub(1+2, 3+4) --> ((3+4)-(1+2))
+	eval.ExpandMacros(program, env)
+
+	// ((3+4)-(1+2)) -> 4
 	_, err = eval.Eval(program, env)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "eval err: %v", err)
-
+		fmt.Fprintf(os.Stderr, "eval err: %v\n", err)
 	}
 	// error in interpreter
 	if err != nil {

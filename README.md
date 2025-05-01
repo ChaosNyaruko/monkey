@@ -208,18 +208,6 @@ We can iterate now! Though we don't have a "loop" syntax.
 
 {<Expression>: <Expression> [, <Expression>:<Expression>].*}
 
-# References
-- https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf
-- https://www.khoury.northeastern.edu/home/wand/eopl/
-- https://book.douban.com/subject/30348061/
-- https://go.dev/doc/pgo
-- https://www.modular.com/mojo
-- bison GLR LALR
-- creeps(the game)
-- PTC
-- RAII (resource allocation is initialization)
-- IIFE(immediately invoked function expression)
-
 # Macro
 similar to Exlixir
 
@@ -231,10 +219,22 @@ similar to Exlixir
 
 ## define and use marco
 - let reverse_sub = macro(a, b) {quote(unquote(b) - unquote(a))}  
-  - macro(1+2, 3+4) --> (7-3) --> 4
-- let first_valid = macro(a, b) {a}  
-- let first_valid = fn   (a, b) {a}  
-  - macro(print("first"), print("second") --> first
+  - reverse_sub(1+2, 3+4) --> (7-3) --> 4
+- let first_valid_m = macro(a, b) {a}  
+- let first_valid_f = fn   (a, b) {a}  
+  - first_valid_m(print("first"), print("second") --> first
+  - first_valid_f(print("first"), print("second") --> first second
 
+# References
+- https://www.plai.org/3/2/PLAI%20Version%203.2.2%20printing.pdf
+- https://www.khoury.northeastern.edu/home/wand/eopl/
+- https://book.douban.com/subject/30348061/
+- https://go.dev/doc/pgo
+- https://www.modular.com/mojo
+- bison GLR LALR
+- creeps(the game)
+- PTC
+- RAII (resource allocation is initialization)
+- IIFE(immediately invoked function expression)
 
 > 函数式语言就是自递归加数组模式匹配

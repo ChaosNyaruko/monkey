@@ -101,11 +101,11 @@ print(quote(foo + unquote(1 + foo)))
 print(quote(foo + unquote(false == (!true))))
 
 let x = quote(foo + unquote(quote(1+bar)));
+let xx = quote(unquote(1+2));
 
 print("x:",x);
+print("xx:",xx);
 
-print("bar not defined");
-print(eval(x));
 
 print("let's define bar=12");
 let bar = 12;
@@ -117,4 +117,6 @@ print("let's modify foo=12");
 let foo = 12;
 print("foo modified, eval result: ", eval(x));
 
-
+let reverse_sub = macro(a, b) {quote(unquote(b) - unquote(a))};
+let ms = reverse_sub(1+2, 3+4);
+print(ms);

@@ -55,6 +55,13 @@ func Start(in io.Reader, out io.Writer) error {
 			printErrors(out, p.Error())
 			continue
 		}
+		// let reverse_sub = macro(a, b) {quote(unquote(b) - unquote(a))}
+		if err := eval.DefineMacros(program, env); err != nil {
+			fmt.Fprintf(out, "define macros err: %v", err)
+		}
+
+		//  reverse_sub(1+2, 3+4) --> ((3+4)-(1+2))
+		eval.ExpandMacros(program, env)
 		// evaluate: print the well-formed AST -> flag
 		// fmt.Fprintf(out, "%s\n", program.String())
 		ob, err := eval.Eval(program, env)

@@ -67,6 +67,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixFnMap[token.LPAREN] = p.parseGroupingExpression
 	p.prefixFnMap[token.IF] = p.parseIfElseExpression
 	p.prefixFnMap[token.FUNCTION] = p.parseFunctionLiteral
+	p.prefixFnMap[token.MACRO] = p.parseMacroLiteral
 	p.prefixFnMap[token.STRING] = p.parseStringLiteral
 	p.prefixFnMap[token.LBRACKET] = p.parseArrayLiteral
 	p.prefixFnMap[token.LBRACE] = p.parseHashLiteral
@@ -517,6 +518,30 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 		Token: p.curToken,
 		Value: raw,
 	}
+}
+
+func (p *Parser) parseMacroLiteral() ast.Expression {
+	f := &ast.MacroLiteral{
+		Token: p.curToken,
+		Body:  &ast.BlockStatement{},
+	}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	f.Parameters = p.parseFunctionParameters()
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	f.Body = p.parseBlockStatement()
+
+	if !p.curTokenIs(token.RBRACE) {
+		panic("the { is not closed for macro")
+	}
+
+	return f
 }
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {

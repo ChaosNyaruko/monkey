@@ -11,6 +11,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPlayground(t *testing.T) {
+	input := `
+	unquote(1+2)
+`
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p, input)
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	s := stmt.Expression.(*ast.CallExpression)
+	t.Logf("%s", s)
+}
+
+func TestMacroLiteralParsing(t *testing.T) {
+	input := `
+macro(x, y) { x + y }
+	`
+
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p, input)
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	s, ok := stmt.Expression.(*ast.MacroLiteral)
+	assert.True(t, ok, "should be a macro literal expression, but got %T for input: %v", s, input)
+	assert.Equal(t, 2, len(s.Parameters))
+
+	testExpression(t, s.Parameters[0], "x")
+	testExpression(t, s.Parameters[1], "y")
+
+	body := s.Body
+	assert.Equal(t, 1, len(body.Statements))
+	testInfixExpression(t, body.Statements[0].(*ast.ExpressionStatement).Expression, "x", "+", "y")
+}
+
 func TestHashLiteral(t *testing.T) {
 	tests := []struct {
 		input string

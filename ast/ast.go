@@ -18,6 +18,7 @@ var _ Expression = &InfixExpression{}
 var _ Expression = &BooleanExpression{}
 var _ Expression = &IfExpression{}
 var _ Expression = &FunctionLiteral{}
+var _ Expression = &MacroLiteral{}
 var _ Expression = &CallExpression{}
 
 type Node interface {
@@ -403,4 +404,29 @@ func (hl *HashLiteral) String() string {
 func (hl *HashLiteral) expressionNode() {}
 func (hl *HashLiteral) TokenLiteral() string {
 	return hl.Token.Literal
+}
+
+type MacroLiteral struct {
+	Token      token.Token   // "macro"
+	Parameters []*Identifier // (x, y)
+	Body       *BlockStatement
+}
+
+func (m *MacroLiteral) String() string {
+	var out bytes.Buffer
+	params := []string{}
+	for _, p := range m.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString("macro")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ","))
+	out.WriteString(")")
+	out.WriteString(m.Body.String())
+	return out.String()
+}
+
+func (m *MacroLiteral) expressionNode() {}
+func (m *MacroLiteral) TokenLiteral() string {
+	return m.Token.Literal
 }

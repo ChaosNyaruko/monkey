@@ -36,6 +36,7 @@ const (
 
 	LET      = "let"
 	FUNCTION = "fn"
+	MACRO    = "macro"
 	IF       = "if"
 	ELSE     = "else"
 	RETURN   = "return"
@@ -52,6 +53,7 @@ const (
 
 var keywords = map[string]TokenType{
 	"fn":     FUNCTION,
+	"macro":  MACRO,
 	"let":    LET,
 	"if":     IF,
 	"else":   ELSE,
