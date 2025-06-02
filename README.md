@@ -160,22 +160,22 @@ return lhs
 "true"
 "false"
 
-### grouping
+### Grouping
 ( <Expression> )
 
-### if-else expressionStatement
+### If-Else ExpressionStatement
 if (<condition>) {<block>} else {<block>}
 ```
 let foo = if (x>y) {x} return {y};
 ```
-### function literal
+### Function Literal
 fn <Params list> <Body>
 <Params list> (Identifier1, Identifier2, ...)
 ```
 let f = fn(a, b) { return a + b;}
 ```
 
-### function calling
+### Function Calling
 <Expression>(<Expression list>)
 ```
 f(1,2)
@@ -204,6 +204,7 @@ struct {
 - let y = x + " " + "world"
 - let l = len("hello")
 ## Array
+```
 - let myArray = [1, 2, 3, "hello", true, fn(a, b) {return a + b;}, [1,2,3]];
 - myArray[0]
 - myArray[6][0]
@@ -212,8 +213,9 @@ struct {
 - first(myArray) 
 - last(myArray)
 - rest(myArray) - a = (1 2 3) scheme: car(a) => 1 cdr(a) => (2 3)
-- let myArray = push(myArray);
-- let myArray = map/reduce(myArray);
+- let myArray = push(myArray, 10);
+- let myArray = map/reduce(myArray, f);
+```
 
 We can iterate now! Though we don't have a "loop" syntax.
 
@@ -260,3 +262,10 @@ similar to Exlixir
 - IIFE(immediately invoked function expression)
 
 > 函数式语言就是自递归加数组模式匹配
+
+
+# TODO (possibly learn them in lox)
+- Easier REPL with GNU readline
+- Float/Hexadecimal number support
+- Error handling: no panic, report line 
+- Virtual Machine

@@ -32,7 +32,7 @@ const (
 
 var _ Hashable = &Integer{}
 var _ Hashable = &Boolean{}
-var _ Hashable = &Integer{}
+var _ Hashable = &String{}
 
 var _ Object = &Integer{}
 var _ Object = &Boolean{}

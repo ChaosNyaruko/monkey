@@ -392,7 +392,7 @@ func evalArrayIndexExpression(array, int object.Object) (object.Object, error) {
 	a := array.(*object.Array)
 	i := int.(*object.Integer)
 	if i.Value >= len(a.Elements) || i.Value < 0 {
-		return nil, fmt.Errorf("index out of bounds, len:%d, visit:%d", len(a.Elements), i.Value)
+		return nil, fmt.Errorf("index out of bounds, len:%d, visit:%d\n", len(a.Elements), i.Value)
 	}
 	return a.Elements[i.Value], nil
 }
@@ -401,7 +401,7 @@ func evalHashIndexExpression(hm, key object.Object) (object.Object, error) {
 	a := hm.(*object.Hash)
 	i, ok := key.(object.Hashable)
 	if !ok {
-		return nil, fmt.Errorf("%v is not hashable", key.Type())
+		return nil, fmt.Errorf("%v is not hashable\n", key.Type())
 	}
 	res, ok := a.Pairs[i.HashKey()]
 	if !ok {
